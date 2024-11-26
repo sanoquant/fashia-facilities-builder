@@ -18,6 +18,14 @@ column_mapping = {
 filtered_folder = "datasets/filtered"
 os.makedirs(filtered_folder, exist_ok=True)
 
+
+# Función para generar una clave primaria numérica
+def generate_numeric_key(ccn):
+    if not str(ccn).isnumeric():
+        # Convierte el CCN en un hash numérico
+        return int(hashlib.md5(str(ccn).encode()).hexdigest(), 16) % (10**9)  # Limita a 9 dígitos
+    return int(ccn)
+
 for file in files:
     try:
         # Cargar el archivo actual
@@ -41,13 +49,19 @@ for file in files:
             subset_columns = list(dynamic_columns.values())  # Usar las columnas dinámicas encontradas
             filtered_data = df.dropna(subset=subset_columns, how="any")
             
+            
+            if "Hospital_General_Information.csv" != file:
+                # Generar la clave primaria numérica
+                filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
+            
             # Guardar los datos filtrados en la carpeta específica
             file_name = os.path.basename(file).replace(".csv", "_filtered.csv")
             output_path = os.path.join(filtered_folder, file_name)
             filtered_data.to_csv(output_path, index=False)
-            print(f"Filtered data saved to: {output_path}")
+            print(f"Filtered data saved to: {output_path}\n\n\n")
             
         else:
-            print("Required columns (or alternatives) not found. Skipping file.")
+            print("Required columns (or alternatives) not found. Skipping file.\n\n\n")
+        
     except Exception as e:
         print(f"Error loading {file}: {e}\n\n\n")
