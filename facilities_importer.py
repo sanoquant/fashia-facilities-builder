@@ -4,10 +4,10 @@ import hashlib
 print("Environment setup complete!")
 
 
-# lista de archivos
+# List of files
 files = ["DFC_FACILITY.csv", "HH_Provider_Oct2024.csv", "Hospice_General-Information_Aug2024.csv", "Hospital_General_Information.csv", "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
 
-# Diccionario de reglas basado en el nombre del archivo
+# Dictionary of rules based on the file name
 file_rules_mapping = {
     "DFC_FACILITY.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "NUCC Code": "261QE0700X"},
     "NH_ProviderInfo_Oct2024.csv": {"Type": "Nursing & Assisted Living", "Subtype": "Skilled Nursing Facility", "NUCC Code": "314000000X"},
@@ -51,27 +51,27 @@ file_rules_mapping = {
             "typeSubRules": "checkByFieldValue"
         }
 }
-# Lista de columnas requeridas y sus alternativas
+# List of required columns and their alternatives
 column_mapping = {
     "Address": ["Address Line 1", "Address", "Provider Address"],
-    "City": ["City/Town"],  # Sin alternativos
-    "State": ["State"],  # Sin alternativos
-    "ZipCode": ["ZIP Code"]  # Sin alternativos
+    "City": ["City/Town"],  # No alternatives
+    "State": ["State"],  # No alternatives
+    "ZipCode": ["ZIP Code"]  # No alternatives
 }
 
-# Crear la carpeta para los archivos filtrados si no existe
+# Create the folder for filtered files if it doesn't exist
 filtered_folder = "datasets/filtered"
 os.makedirs(filtered_folder, exist_ok=True)
 
 
-# Función para generar una clave primaria numérica
+# Function to generate a numeric primary key
 def generate_numeric_key(ccn):
     if not str(ccn).isnumeric():
-        # Convierte el CCN en un hash numérico
-        return int(hashlib.md5(str(ccn).encode()).hexdigest(), 16) % (10**9)  # Limita a 9 dígitos
+        # Converts CCN into a numeric hash
+        return int(hashlib.md5(str(ccn).encode()).hexdigest(), 16) % (10**9)  # Limits to 9 digits
     return int(ccn)
 
-# Función principal para procesar un archivo basado en el diccionario de reglas
+# Main function to process a file based on the rules dictionary
 def process_file(file_name, data):
     rules = file_rules_mapping.get(file_name)
     if not rules:
@@ -80,17 +80,17 @@ def process_file(file_name, data):
 
     entities = []
 
-    # Procesar reglas generales
+    # Process general rules
     if "Type" in rules and "Subtype" in rules and "NUCC Code" in rules:
         data["Type"] = rules["Type"]
         data["Subtype"] = rules["Subtype"]
         data["NUCC Code"] = rules["NUCC Code"]
         entities.extend(data.to_dict(orient="records"))
 
-    # Procesar subreglas
+    # Process subrules
     if "SubRules" in rules:
         if rules.get("typeSubRules") == "ifCnnIsNumber":
-            # Subreglas basadas en si el CCN es numérico
+            # Subrules based on whether CCN is numeric
             for condition, subrule in rules["SubRules"].items():
                 filtered_data = data[data["CMS Certification Number (CCN)"].str.isnumeric() if condition == "true" else ~data["CMS Certification Number (CCN)"].str.isnumeric()]
                 filtered_data["Type"] = subrule["Type"]
@@ -99,7 +99,7 @@ def process_file(file_name, data):
                 entities.extend(filtered_data.to_dict(orient="records"))
 
         elif rules.get("typeSubRules") == "duplicateByActiveFlag":
-            # Subreglas para duplicar entidades según flags
+            # Subrules to duplicate entities based on flags
             for column, subrule in rules["SubRules"].items():
                 filtered_data = data[data[column] == "Yes"]
                 filtered_data["Type"] = subrule["Type"]
@@ -108,26 +108,26 @@ def process_file(file_name, data):
                 entities.extend(filtered_data.to_dict(orient="records"))
 
         elif rules.get("typeSubRules") == "checkByFieldValue":
-            # Subreglas basadas en valores de campos
+            # Subrules based on field values
             for field_value, subrule in rules["SubRules"].items():
-                if isinstance(subrule, list):  # Manejar listas de subreglas
-                    # Filtrar las filas que coincidan con el valor del campo
+                if isinstance(subrule, list):  # Handle lists of subrules
+                    # Filter rows that match the field value
                     filtered_data = data[data["Hospital Type"] == field_value]
                     
-                    # Crear una entidad por cada regla en la lista
+                    # Create an entity for each rule in the list
                     for rule in subrule:
-                        # Copiar el DataFrame filtrado para evitar conflictos de referencia
+                        # Copy the filtered DataFrame to avoid reference conflicts
                         entity_data = filtered_data.copy()
                         
-                        # Asignar valores específicos de la subregla actual
+                        # Assign specific values from the current subrule
                         entity_data["Type"] = rule["Type"]
                         entity_data["Subtype"] = rule["Subtype"]
                         entity_data["NUCC Code"] = rule["NUCC Code"]
                         
-                        # Agregar las entidades procesadas a la lista
+                        # Add processed entities to the list
                         entities.extend(entity_data.to_dict(orient="records"))
                 else:
-                    # Procesar una única regla
+                    # Process a single rule
                     filtered_data = data[data["Hospital Type"] == field_value]
                     filtered_data["Type"] = subrule["Type"]
                     filtered_data["Subtype"] = subrule["Subtype"]
@@ -139,12 +139,12 @@ def process_file(file_name, data):
 
 for file in files:
     try:
-        # Cargar el archivo actual
+        # Load the current file
         df = pd.read_csv("./datasets/"+file)
         print(f"Loaded {file} successfully with {len(df)} rows.")
         print(df.head())
         
-        # Crear un mapeo dinámico para columnas presentes en el archivo
+        # Create a dynamic mapping for columns present in the file
         dynamic_columns = {}
         for main_col, alternatives in column_mapping.items():
             for alt_col in [main_col] + alternatives:
@@ -152,23 +152,23 @@ for file in files:
                     dynamic_columns[main_col] = alt_col
                     break
         
-        # Verificar si todas las columnas requeridas (o sus alternativas) están presentes
+        # Check if all required columns (or their alternatives) are present
         if set(column_mapping.keys()).issubset(dynamic_columns.keys()):
             print("Required columns found (or alternatives). Applying filter...")
             
-            # Filtrar filas con valores faltantes
-            subset_columns = list(dynamic_columns.values())  # Usar las columnas dinámicas encontradas
+            # Filter rows with missing values
+            subset_columns = list(dynamic_columns.values())  # Use dynamically found columns
             filtered_data = df.dropna(subset=subset_columns, how="any")
             
             
             if "Hospital_General_Information.csv" != file:
-                # Generar la clave primaria numérica
+                # Generate the numeric primary key
                 filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
             
-            # Se procesan los datos del archivo CMS actual a partir del diccionario de reglas por archivo
+            # Process the CMS file data based on the rules dictionary for the file
             processed_data = process_file(file, filtered_data)
             
-            # Guardar los datos filtrados en la carpeta específica
+            # Save the filtered data in the specific folder
             file_name = os.path.basename(file).replace(".csv", "_filtered.csv")
             output_path = os.path.join(filtered_folder, file_name)
             filtered_data.to_csv(output_path, index=False)
