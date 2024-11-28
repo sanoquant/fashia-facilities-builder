@@ -107,14 +107,14 @@ def map_columns(data):
     return data
 
 def ensure_columns(entities):
-    """Ensures required columns are present and adds missing ones with default values."""
+    # Ensures required columns are present and adds missing ones with default values.
     for column, default_value in required_columns.items():
         if column not in entities.columns:
             entities[column] = default_value
     return entities[required_columns.keys()]
 
 def save_entities_to_csv(entities, output_file):
-    """Saves entities to a CSV file for later database import."""
+    # Saves entities to a CSV file for later database import.
     try:
         # Convert entities to a DataFrame and ensure required columns are present
         entities_df = pd.DataFrame(entities)
