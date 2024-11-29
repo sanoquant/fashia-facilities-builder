@@ -1,0 +1,204 @@
+start;
+
+block "Load Datasets and Coordinates" {
+    // Step 1: Load Datasets
+    LOAD CMS datasets for all facility types;
+    LOAD NPPES dataset;
+
+    // Step 2: Load Coordinates File
+    LOAD coordinates reference files for facilities and addresses;
+}
+
+block "Process CMS Files" {
+      // Facility Rules for the 7 Types
+    for (each row in CMS datasets) {
+      
+        block "Inpatient Rehabilitation Facilities" {
+            if (CNN is numeric) {
+                SET Type = "Hospital";
+                SET Subtype = "Rehabilitation Hospital";
+                SET NUCC = "283X00000X";
+            } else {
+                SET Type = "Hospital Unit";
+                SET Subtype = "Rehabilitation Hospital Unit";
+                SET NUCC = "273Y00000X";
+            }
+            CALL Insert Facility;
+        }
+
+        block "Dialysis Facilities" {
+            SET Type = "Clinic";
+            SET Subtype = "Dialysis Clinic";
+            SET NUCC = "261QE0700X";
+            CALL Insert Facility;
+        }
+
+        block "Hospice Facilities" {
+            SET Type = "Agency";
+            SET Subtype = "Community Based Hospice Care";
+            SET NUCC = "251G00000X";
+            CALL Insert Facility;
+        }
+
+        block "Nursing Homes" {
+            SET Type = "Nursing & Assisted Living";
+            SET Subtype = "Skilled Nursing Facility";
+            SET NUCC = "314000000X";
+            CALL Insert Facility;
+        }
+
+        block "Long-Term Care Hospitals" {
+            SET Type = "Hospital";
+            SET Subtype = "Long Term Care Hospital";
+            SET NUCC = "282E00000X";
+            CALL Insert Facility;
+        }
+
+        block "Home Health Agency" {
+            SET Type = "Agency";
+            SET Subtype = "Home Health Agency (All)";
+            SET NUCC = "251E00000X";
+            if (Offers Nursing Care Services = Yes) {
+                SET Subtype = "Home Health Agency (Nursing Care Services)";
+                CALL Insert Facility;
+            }
+            if (Offers Physical Therapy Services = Yes) {
+                SET Subtype = "Home Health Agency (Physical Therapy Services)";
+                CALL Insert Facility;
+            }
+            if (Offers Occupational Therapy Services = Yes) {
+                SET Subtype = "Home Health Agency (Occupational Therapy Services)";
+                CALL Insert Facility;
+            }
+            if (Offers Speech Pathology Services = Yes) {
+                SET Subtype = "Home Health Agency (Speech Pathology Services)";
+                CALL Insert Facility;
+            }
+            if (Offers Home Health Aide Services = Yes) {
+                SET Subtype = "Home Health Agency (Home Health Aide Services)";
+                CALL Insert Facility;
+            }
+        }
+
+        block "Hospital General Information" {
+            switch (Hospital Type) {
+                case "Acute Care - Veterans Administration":
+                    SET Type = "Hospital";
+                    SET Subtype = "Acute Care - Veterans Administration";
+                    SET NUCC = "N/A";
+                    break;
+
+                case "Acute Care Hospitals":
+                    SET Type = "Hospital";
+                    SET Subtype = "Acute Care";
+                    SET NUCC = "282N00000X";
+                    break;
+
+                case "Childrens":
+                    SET Type = "Hospital";
+                    SET Subtype = "Pediatric";
+                    SET NUCC = "282NC2000X";
+                    break;
+
+                case "Critical Access Hospitals":
+                    SET Type = "Hospital";
+                    SET Subtype = "Critical Access";
+                    SET NUCC = "282NC0060X";
+                    break;
+
+                case "Acute Care - Department of Defense":
+                    SET Type = "Hospital";
+                    SET Subtype = "Military Hospital";
+                    SET NUCC = "286500000X";
+                    CALL Insert Facility;
+
+                    SET Type = "Hospital";
+                    SET Subtype = "Military General Acute Care Hospital";
+                    SET NUCC = "2865M2000X";
+                    CALL Insert Facility;
+                    break;
+
+                case "Psychiatric":
+                    SET Type = "Hospital";
+                    SET Subtype = "Psychiatric";
+                    SET NUCC = "283Q00000X";
+                    break;
+
+                default:
+                    SET Type = NULL;
+                    SET Subtype = NULL;
+                    SET NUCC = NULL;
+            }
+            CALL Insert Facility;
+        }
+    }
+}
+
+block "Process NPPES File" {
+    // Step 1: Load NPPES Data
+    TRAVERSE NPPES dataset for providers and facilities;
+
+    // Reconcile Providers
+    for (each provider in NPPES) {
+        if (provider exists in Providers Table) {
+            SKIP;
+        } else {
+          
+          
+            if (is nucc code in list)
+            {
+            get type and sub type
+            INSERT provider into Providers Table;
+            }else
+            {
+              //to support clinical location facities
+              insert with nucc_code N/A and
+              facility type clinical location;
+            }
+        }
+
+        // Reconcile Addresses
+        if (CMS addresses exist for provider) {
+            SKIP NPPES addresses;
+        } else {
+            INSERT NPPES addresses;
+            MARK primary NPPES address as primary practice address;
+        }
+
+        // Reconcile Specialties
+        PROCESS specialties using CMS Temporary Specialties Table and "Student" logic;
+
+        // Update Employer Relationships
+        MATCH provider addresses to employer entity addresses;
+        CREATE employment relationship if match exists;
+
+        // Create Facility Affiliation
+        MATCH provider practice addresses with facility addresses;
+        INSERT Provider-Facility Relationship for valid matches;
+    }
+}
+
+block "Final Coordinates Calculation" {
+    // Final Step: Calculate and Update Coordinates
+    for (each facility or entity) {
+        VERIFY coordinates availability;
+        UPDATE facility and address records with calculated coordinates;
+    }
+}
+
+
+block "Mark Faciliies as unique to address"
+{
+  Search for addresses with the same hash and mark facilities as not unique;
+  
+}
+end;
+
+function  "Insert Facility" {
+    // Common Function for Inserting Facilities
+    Generate unique primary key for Facility;
+    Save facility to Facility Table;
+    Save address to Address Table;
+    LINK facility to providers and employers;
+}
+
