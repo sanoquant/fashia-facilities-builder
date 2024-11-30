@@ -17,6 +17,10 @@ output_folder = "datasets/output"
 os.makedirs(output_folder, exist_ok=True)
 output_file = os.path.join(output_folder, "entities.csv")
 
+# Output files for the Addresses and States tables
+addresses_file = "datasets/output/addresses.csv"
+states_file = "datasets/output/states.csv"
+
 # Dictionary of rules based on the file name
 file_rules_mapping = {
     "DFC_FACILITY.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "NUCC_Code": "261QE0700X"},
@@ -215,6 +219,83 @@ def process_file(file_name, data):
     return pd.DataFrame(entities)
 
 
+# Initialize a global states mapping to assign unique StateIDs
+state_mapping = {}
+
+# Function to generate a unique address ID (hash)
+def generate_address_id(cnn, address, city, state, zip_code):
+    """Generate a unique ID for an address based on CNN and address hash."""
+    # Use only the first 5 digits of the ZIP code
+    zip_trimmed = str(zip_code)[:5] if pd.notna(zip_code) else ""
+    address_str = f"{address}|{city}|{state}|{zip_trimmed}"
+    address_hash = hashlib.md5(address_str.encode()).hexdigest()
+    return int(hashlib.md5(f"{cnn}{address_hash}".encode()).hexdigest(), 16) % (10**9)  # 9-digit limit
+
+# Function to get or assign StateID
+def get_or_create_state_id(state_code):
+    """Retrieve an existing StateID or create a new one for a state code."""
+    if state_code not in state_mapping:
+        state_id = len(state_mapping) + 1
+        state_mapping[state_code] = {"StateID": state_id, "StateCode": state_code, "StateName": None}
+    return state_mapping[state_code]["StateID"]
+
+# Function to extract addresses and save to CSV
+def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
+    """Extract addresses from the data and save them to a CSV."""
+    address_records = []
+    for _, row in data.iterrows():
+        # Dynamically map columns
+        address_col = next((alt for alt in column_mapping["Address"] if alt in data.columns), None)
+        city_col = next((alt for alt in column_mapping["City"] if alt in data.columns), None)
+        state_col = next((alt for alt in column_mapping["State"] if alt in data.columns), None)
+        zip_col = next((alt for alt in column_mapping["ZipCode"] if alt in data.columns), None)
+        
+        if not all([address_col, city_col, state_col, zip_col]):
+            continue  # Skip rows with missing required columns
+        
+        address = row[address_col]
+        city = row[city_col]
+        state = row[state_col]
+        zip_code = row[zip_col]
+        cnn = row.get(cnn_column, None)
+        
+        # Generate address ID
+        address_id = generate_address_id(cnn, address, city, state, zip_code)
+        
+        # Assign StateID using state_mapping
+        state_id = get_or_create_state_id(state)
+        
+        # Create address hash (for tracking uniqueness)
+        address_hash = hashlib.md5(f"{address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest()
+        
+        # Append to records
+        address_records.append({
+            "address_id": address_id,
+            "npi": None,  # Placeholder, not defined in requirements
+            "cnn": cnn,
+            "address": address,
+            "city": city,
+            "state_id": state_id,
+            "zip": str(zip_code)[:5],
+            "cms_addr_id": None,  # Placeholder
+            "address_hash": address_hash,
+            "primary_practice_address": False
+        })
+    
+    # Save addresses to CSV
+    if os.path.exists(addresses_file):
+        pd.DataFrame(address_records).to_csv(addresses_file, mode='a', index=False, header=False)
+    else:
+        pd.DataFrame(address_records).to_csv(addresses_file, index=False)
+    print(f"Addresses saved to {addresses_file}")
+
+# Save states to CSV
+def save_states_to_csv():
+    """Save the unique states to the states CSV file."""
+    state_records = list(state_mapping.values())
+    pd.DataFrame(state_records).to_csv(states_file, index=False)
+    print(f"States saved to {states_file}")
+
 for file in files:
     try:
         # Load the current file
@@ -246,6 +327,9 @@ for file in files:
                 # Generate the numeric primary key from Facility ID
                 filtered_data["PrimaryKey"] = filtered_data["Facility ID"].apply(generate_numeric_key)
             
+            # Extract addresses and update state_mapping
+            extract_addresses(df)
+            
             # Process the CMS file data based on the rules dictionary for the file
             processed_data = process_file(file, filtered_data)
             
@@ -265,3 +349,6 @@ for file in files:
             print("Required columns (or alternatives) not found. Skipping file.\n\n\n")
     except Exception as e:
         print(f"Error loading {file}: {e}\n\n\n")
+        
+# Save states to CSV after all files are processed
+save_states_to_csv()
