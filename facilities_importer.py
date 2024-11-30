@@ -51,7 +51,7 @@ file_rules_mapping = {
                 "Acute Care Hospitals": {"Type": "Hospital", "Subtype": "Acute Care", "NUCC_Code": "282N00000X"},
                 "Childrens": {"Type": "Hospital", "Subtype": "Pediatric", "NUCC_Code": "282NC2000X"},
                 "Critical Access Hospitals": {"Type": "Hospital", "Subtype": "Critical Access", "NUCC_Code": "282NC0060X"},
-                "Acute Care- department of Defense": [
+                "Acute Care - Department of Defense": [
                     {"Type": "Hospital", "Subtype": "Military Hospital", "NUCC_Code": "286500000X"},
                     {"Type": "Hospital", "Subtype": "Military General acute care hospital", "NUCC_Code": "2865M2000X"}
                 ],
@@ -158,50 +158,60 @@ def process_file(file_name, data):
     # Process subrules
     if "SubRules" in rules:
         if rules.get("typeSubRules") == "ifCnnIsNumber":
-            # Subrules based on whether CCN is numeric
             for condition, subrule in rules["SubRules"].items():
-                filtered_data = data[data["CMS Certification Number (CCN)"].str.isnumeric() if condition == "true" else ~data["CMS Certification Number (CCN)"].str.isnumeric()]
-                filtered_data["Type"] = subrule["Type"]
-                filtered_data["Subtype"] = subrule["Subtype"]
-                filtered_data["NUCC_Code"] = subrule["NUCC_Code"]
-                entities.extend(filtered_data.to_dict(orient="records"))
-
-        elif rules.get("typeSubRules") == "duplicateByActiveFlag":
-            # Subrules to duplicate entities based on flags
-            for column, subrule in rules["SubRules"].items():
-                filtered_data = data[data[column] == "Yes"]
-                filtered_data["Type"] = subrule["Type"]
-                filtered_data["Subtype"] = subrule["Subtype"]
-                filtered_data["NUCC_Code"] = subrule["NUCC_Code"]
-                entities.extend(filtered_data.to_dict(orient="records"))
-
-        elif rules.get("typeSubRules") == "checkByFieldValue":
-            # Subrules based on field values
-            for field_value, subrule in rules["SubRules"].items():
-                if isinstance(subrule, list):  # Handle lists of subrules
-                    # Filter rows that match the field value
-                    filtered_data = data[data["Hospital Type"] == field_value]
-                    
-                    # Create an entity for each rule in the list
-                    for rule in subrule:
-                        # Copy the filtered DataFrame to avoid reference conflicts
-                        entity_data = filtered_data.copy()
-                        
-                        # Assign specific values from the current subrule
-                        entity_data["Type"] = rule["Type"]
-                        entity_data["Subtype"] = rule["Subtype"]
-                        entity_data["NUCC_Code"] = rule["NUCC_Code"]
-                        
-                        # Add processed entities to the list
-                        entities.extend(entity_data.to_dict(orient="records"))
-                else:
-                    # Process a single rule
-                    filtered_data = data[data["Hospital Type"] == field_value]
-                    filtered_data["Type"] = subrule["Type"]
-                    filtered_data["Subtype"] = subrule["Subtype"]
-                    filtered_data["NUCC_Code"] = subrule["NUCC_Code"]
+                filtered_data = data[
+                    data["CMS Certification Number (CCN)"].str.isnumeric() if condition == "true" else
+                    ~data["CMS Certification Number (CCN)"].str.isnumeric()
+                ].copy()
+                print(f"Filtered {len(filtered_data)} rows for condition '{condition}' in 'ifCnnIsNumber'.")
+                
+                if not filtered_data.empty:
+                    filtered_data.loc[:, "Type"] = subrule["Type"]
+                    filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
+                    filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
                     entities.extend(filtered_data.to_dict(orient="records"))
 
+        elif rules.get("typeSubRules") == "duplicateByActiveFlag":
+            for column, subrule in rules["SubRules"].items():
+                if column in data.columns:
+                    filtered_data = data[data[column] == "Yes"].copy()
+                    print(f"Filtered {len(filtered_data)} rows for column '{column}' in 'duplicateByActiveFlag'.")
+                    
+                    if not filtered_data.empty:
+                        filtered_data.loc[:, "Type"] = subrule["Type"]
+                        filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
+                        filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
+                        entities.extend(filtered_data.to_dict(orient="records"))
+                else:
+                    print(f"Column '{column}' not found in {file_name}. Skipping subrule.")
+
+        elif rules.get("typeSubRules") == "checkByFieldValue":
+            if "Hospital Type" in data.columns:
+                for field_value, subrule in rules["SubRules"].items():
+                    if isinstance(subrule, list):  # Handle lists of subrules
+                        filtered_data = data[data["Hospital Type"] == field_value].copy()
+                        print(f"Filtered {len(filtered_data)} rows for field value '{field_value}' in 'checkByFieldValue'.")
+
+                        if not filtered_data.empty:
+                            for rule in subrule:
+                                entity_data = filtered_data.copy()
+                                entity_data.loc[:, "Type"] = rule["Type"]
+                                entity_data.loc[:, "Subtype"] = rule["Subtype"]
+                                entity_data.loc[:, "NUCC_Code"] = rule["NUCC_Code"]
+                                entities.extend(entity_data.to_dict(orient="records"))
+                    else:
+                        filtered_data = data[data["Hospital Type"] == field_value].copy()
+                        print(f"Filtered {len(filtered_data)} rows for field value '{field_value}' in 'checkByFieldValue'.")
+
+                        if not filtered_data.empty:
+                            filtered_data.loc[:, "Type"] = subrule["Type"]
+                            filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
+                            filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
+                            entities.extend(filtered_data.to_dict(orient="records"))
+            else:
+                print(f"'Hospital Type' column not found in {file_name}. Skipping checkByFieldValue subrules.")
+
+    print(f"Generated {len(entities)} entities for file: {file_name}")
     return pd.DataFrame(entities)
 
 
