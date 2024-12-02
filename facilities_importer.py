@@ -253,27 +253,34 @@ def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
         if not all([address_col, city_col, state_col, zip_col]):
             continue  # Skip rows with missing required columns
         
-        address = row[address_col]
+        # Handle concatenation for Address Line 1 and Address Line 2
+        if address_col == "Address Line 1":
+            address_line_1 = row["Address Line 1"]
+            address_line_2 = row.get("Address Line 2", "")  # Default to empty string if not present
+            full_address = f"{address_line_1}, {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
+        else:
+            full_address = row[address_col]
+        
         city = row[city_col]
         state = row[state_col]
         zip_code = row[zip_col]
         cnn = row.get(cnn_column, None)
         
         # Generate address ID
-        address_id = generate_address_id(cnn, address, city, state, zip_code)
+        address_id = generate_address_id(cnn, full_address, city, state, zip_code)
         
         # Assign StateID using state_mapping
         state_id = get_or_create_state_id(state)
         
         # Create address hash (for tracking uniqueness)
-        address_hash = hashlib.md5(f"{address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest()
+        address_hash = hashlib.md5(f"{full_address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest()
         
         # Append to records
         address_records.append({
             "address_id": address_id,
             "npi": None,  # Placeholder, not defined in requirements
             "cnn": cnn,
-            "address": address,
+            "address": full_address,
             "city": city,
             "state_id": state_id,
             "zip": str(zip_code)[:5],
