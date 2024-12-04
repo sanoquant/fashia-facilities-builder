@@ -1,13 +1,13 @@
 import asyncio
 import aiohttp
-import pandas as pd
+import sqlite3
 import json
-import urllib.parse
 import os
+import urllib.parse
 from dotenv import load_dotenv
 
 load_dotenv()
-BEARER_TOKEN = os.getenv("BEARER_TOKEN")
+APPLE_MAPS_API_TOKEN = os.getenv("APPLE_MAPS_API_TOKEN")
 
 async def get_access_token(session):
     """
@@ -15,7 +15,7 @@ async def get_access_token(session):
     """
     url = "https://maps-api.apple.com/v1/token"
     headers = {
-        'Authorization': f'Bearer {BEARER_TOKEN}'
+        'Authorization': f'Bearer {APPLE_MAPS_API_TOKEN}'
     }
     try:
         async with session.post(url, headers=headers) as response:
@@ -69,6 +69,53 @@ async def geocode_address(session, address_hash, address, city, state_code, zip_
         print(f"Request failed for address {full_address}: {e}")
     return None
 
+def load_addresses_from_db(db_path):
+    """
+    Loads addresses from the SQLite database that are not already in the address_geolocation table.
+    Normalizes zip codes to ensure they have 5 digits by padding with leading zeros.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    query = """
+        SELECT a.address_hash, a.address, a.city, s.State_code, a.zip_code
+        FROM addresses a
+        JOIN states s ON a.state_id = s.state_id
+        WHERE a.address_hash NOT IN (SELECT address_hash FROM address_geolocation);
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    conn.close()
+
+    addresses = [
+        {
+            'address_hash': row[0],
+            'address': row[1],
+            'city': row[2],
+            'state_code': row[3],
+            'zip_code': str(row[4]).zfill(5)
+        }
+        for row in rows
+    ]
+    return addresses
+
+def save_results_to_db(results, db_path):
+    """
+    Saves the geocoding results to the address_geolocation table in the SQLite database.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    insert_query = """
+        INSERT INTO address_geolocation (address_hash, latitude, longitude)
+        VALUES (?, ?, ?)
+    """
+    cursor.executemany(insert_query, [(r['address_hash'], r['latitude'], r['longitude']) for r in results])
+
+    conn.commit()
+    conn.close()
+    print(f"Saved {len(results)} geocoding results to the database.")
+
 async def process_addresses(addresses, api_token):
     """
     Processes a list of addresses and performs geocoding in parallel using chunks.
@@ -84,50 +131,25 @@ async def process_addresses(addresses, api_token):
             results.extend(filter(None, chunk_results))
     return results
 
-def load_addresses_from_csv(input_csv, states_csv):
-    """
-    Loads addresses and state mappings from CSV files and returns a list of dictionaries with the required data.
-    """
-    df_addresses = pd.read_csv(input_csv)
-    df_states = pd.read_csv(states_csv)
-    state_mapping = df_states.set_index('StateID')['StateCode'].to_dict()
-    addresses = []
-    for _, row in df_addresses.iterrows():
-        state_code = state_mapping.get(row['state_id'], None)
-        if not state_code:
-            print(f"Warning: State ID {row['state_id']} not found in states.csv")
-            continue
-        address = {
-            'address_hash': row['address_hash'],
-            'address': row['address'],
-            'city': row['city'],
-            'state_code': state_code,
-            'zip_code': row['zip_code']
-        }
-        addresses.append(address)
-    return addresses
-
-def save_results_to_csv(results, output_csv):
-    """
-    Saves the geocoding results to a CSV file.
-    """
-    df = pd.DataFrame(results)
-    df.to_csv(output_csv, index=False)
-    print(f"Results saved to {output_csv}")
-
 async def main():
     """
     Main function to orchestrate loading data, performing geocoding, and saving results.
     """
-    input_csv = 'addresses.csv'
-    states_csv = 'states.csv'
-    output_csv = 'geocoded_addresses.csv'
-    addresses = load_addresses_from_csv(input_csv, states_csv)
+    db_path = 'facilities.db'
+
+    # Load addresses that need geocoding
+    addresses = load_addresses_from_db(db_path)
+
+    if not addresses:
+        print("No addresses found that need geocoding.")
+        return
+
+    # Get access token and perform geocoding
     async with aiohttp.ClientSession() as session:
         access_token = await get_access_token(session)
         if access_token:
             results = await process_addresses(addresses, access_token)
-            save_results_to_csv(results, output_csv)
+            save_results_to_db(results, db_path)
         else:
             print("Failed to obtain access token.")
 
