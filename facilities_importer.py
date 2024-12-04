@@ -5,7 +5,13 @@ print("Environment setup complete!")
 
 
 # List of files
-files = ["DFC_FACILITY.csv", "HH_Provider_Oct2024.csv", "Hospice_General-Information_Aug2024.csv", "Hospital_General_Information.csv", "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
+files = [
+    "DFC_FACILITY.csv",
+         "HH_Provider_Oct2024.csv",
+         "Hospice_General-Information_Aug2024.csv",
+         "Hospital_General_Information.csv",
+         "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv",
+         "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
 
 
 # Create the folder for filtered files if it doesn't exist
@@ -221,6 +227,21 @@ def process_file(file_name, data):
 
 # Initialize a global states mapping to assign unique StateIDs
 state_mapping = {}
+def initialize_state_mapping(states_file):
+    """Initialize the state_mapping with the existing states CSV file."""
+    if os.path.exists(states_file):
+        states_df = pd.read_csv(states_file)
+        for _, row in states_df.iterrows():
+            state_code = row["StateCode"]
+            state_mapping[state_code] = {
+                "StateID": row["StateID"],
+                "StateCode": state_code,
+                "StateName": row["StateName"]
+            }
+        print(f"State mapping initialized with {len(state_mapping)} states from {states_file}.")
+    else:
+        print(f"States file {states_file} not found. State mapping will start empty.")
+
 
 # Function to generate a unique address ID (hash)
 def generate_address_id(cnn, address, city, state, zip_code):
@@ -302,6 +323,8 @@ def save_states_to_csv():
     state_records = list(state_mapping.values())
     pd.DataFrame(state_records).to_csv(states_file, index=False)
     print(f"States saved to {states_file}")
+# Load the existing states.csv file to initialize state_mapping
+initialize_state_mapping(states_file)
 
 for file in files:
     try:
