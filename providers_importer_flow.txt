@@ -1,0 +1,239 @@
+start;
+
+block "Insert CMS Data" {
+    // Step 1: Load CMS Data
+    {
+    LOAD CMS data from CMSFilePath;
+    VALIDATE file format;
+    }
+    if (file is invalid) {
+        PRINT "Invalid file format" and EXIT;
+    }
+
+    // Process each row in CMS Data
+    for (each row in CMS file) {
+        if (row missing critical fields) {
+            SKIP row;
+        }
+
+        // Step 2: Insert Providers, Addresses, and Specialties
+        {
+        INSERT OR UPDATE Providers Table;
+        INSERT specialties into Temporary 
+        }
+        // Step 3: Process Addresses
+        {
+
+          calculate the address hash to be compared with facility addresss;
+        
+        }
+        
+        // Step 4: Keep specialities for nppes merge
+       
+        {
+            foreach each unique specialty insert into Temporary Specialties Table;
+        }
+        
+        // Step 5: Process Employers
+        if (facility name exists) {
+            EXTRACT employer details (facility_name, org_pac_id, etc);
+            INSERT employer into Entity Table;
+            
+            Facility_Type=Clinical Location
+            NUCC = NA;
+            
+            CREATE Provider-Employer relationship;
+            INSERT employer address with unique hash
+            check for  coordinates;
+        }
+        
+        
+        if(last row of the same npi)
+        {
+          
+        
+        // Step 6: Insert Provider-to-Facility Association
+        look at the facility file by npi;
+        
+        if(type == "Hospital Unit" subtype == "Rehabilitation Hospital" )
+        {
+          compare with Facility Affiliations Certification Number;
+        } else
+        {
+           compare with Facility Affiliations Certification Number
+           or 
+           Facility Type Certification Numbe;
+        }
+        get affiliated facility;
+        
+        if (facility and providers address is the same) {
+            INSERT Provider-Facility Relationship;
+        } else
+        {
+        // Step 7: Mark Clinical Location
+        INSERT NEW FACILITY 
+        WITH TYPE CLINICAL
+        LOCATION 
+        NUCC CODE = N/A
+        NAME = ADDRESS LN 1 + ADDRESS LN 2
+        NPI = NPI+COUNTER
+        
+        INSERT ADDRESS FOR THE FACILITY WITH HASH
+        
+        AFFILIATE PROVIDER TO NEW CLINICAL LOCATION FACILITY
+        
+                
+          
+        }
+        
+        }
+
+    }
+}
+
+ ***START NPPES DATA PROCESS***;
+ 
+ 
+ {
+    // Step 8: Start Traversing NPPES Type 1 File
+   
+   {
+    LOAD additional NPPES data into Temporary Table;
+    TRAVERSE NPPES Type 1 file for additional provider data;
+    }
+    // Process each row in NPPES Data
+    for (each provider in NPPES file) {
+        // Step 9: Reconcile Providers
+        if (provider exists in Providers Table) {
+            SKIP;
+        } else {
+            INSERT INTO Providers Table;
+        }
+
+        // Step 10: Reconcile Addresses
+        if (CMS addresses exist for provider) {
+            SKIP NPPES addresses;
+        } else {
+            INSERT all NPPES addresses;
+            MARK primary NPPES address as primary practice address;
+        }
+
+        // Step 11: Reconcile Specialties
+        
+         block "specialities" {
+         for (each specialty in NPPES) {
+        if (specialty is "student" and specialty NUCC Code = "390200000X") {
+            if (CMS Temporary Specialties Table has records) {
+                if (this is the only specialty for the provider) {
+                    // Use CMS specialties and map them to NUCC codes using a dictionary
+                    MAP CMS specialties from text to NUCC codes using Dictionary;
+                    USE CMS specialties;
+                } else {
+                    // Check if there are additional specialties in the row
+                    if (row has more specialties besides "student") {
+                        if ("student" is the primary specialty) {
+                            KEEP "student" specialty only;
+                        } else {
+                            REMOVE "student" specialty and KEEP other specialties;
+                        }
+                    }
+                }
+            } else {
+                // No CMS Temporary Specialties exist
+                 INSERT ALL specialties into Provider-Specialties Table;
+                 
+                 Insert State and license.T
+            }
+        } else {
+            // Specialty is not "student"
+            INSERT ALL specialties into Provider-Specialties Table;
+        }
+    }
+         } 
+         
+         if ( is provider is on CMS?)
+      {
+        skip affiliations;
+      }
+      else {
+        block "affiliations and employers" {
+
+          
+         // Step 12: Create facilities and employers affiliation with unique to adress entities
+           
+          for ( for each provider address)
+          {
+            
+   //COMPARE WITH CMS OR NPPES FACILITIES         
+  if (address is the same to any non clinical location unique entity  address)
+          {
+        CREATE EMPLOYMENT RELATIONSHIP;      
+          } 
+        
+ // Step 13: Create Provider-Facility Affiliation
+ //COMPARE WITH CMS OR NPPES FACILITIES   
+  if (address is the same to any unique facility address)
+            {
+      
+        INSERT Provider-Facility Relationship for valid matches;
+          }
+        else
+        {
+        //  Clinical Location
+        INSERT NEW FACILITY 
+        WITH TYPE CLINICAL
+        LOCATION 
+        NUCC CODE = N/A
+        NAME = ADDRESS LN 1 + ADDRESS LN 2
+        NPI = NPI+COUNTER
+        
+        INSERT ADDRESS FOR THE FACILITY WITH HASH
+        
+        AFFILIATE PROVIDER TO NEW CLINICAL LOCATION FACILITY
+        
+        }
+                  
+          
+        
+
+       
+  
+       
+        
+        
+        }
+      }  
+        }
+        
+    }
+
+
+block "Finalize Unprocessed CMS Providers" {
+    // Step 15: Process Leftover CMS Providers
+    for (each leftover CMS provider) {
+        EXECUTE all CMS import processes: specialties, addresses, affiliations, etc.;
+    }
+
+   
+}
+
+block "employers type"
+{
+ // Step 16: Update Multi-Specialty Flags
+    for (each facility or employer entity) {
+        if (associated providers have multiple specialties) {
+            SET Multi_speciality = true;
+        } else {
+            SET Multi_speciality = false;
+        }
+    }
+}   
+
+
+{
+clean up temporary tables;
+}
+
+end;
+
+any source  
