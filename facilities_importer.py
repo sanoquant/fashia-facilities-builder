@@ -5,7 +5,13 @@ print("Environment setup complete!")
 
 
 # List of files
-files = ["DFC_FACILITY.csv", "HH_Provider_Oct2024.csv", "Hospice_General-Information_Aug2024.csv", "Hospital_General_Information.csv", "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
+files = [
+    "DFC_FACILITY.csv",
+         "HH_Provider_Oct2024.csv",
+         "Hospice_General-Information_Aug2024.csv",
+         "Hospital_General_Information.csv",
+         "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv",
+         "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
 
 
 # Create the folder for filtered files if it doesn't exist
@@ -221,15 +227,30 @@ def process_file(file_name, data):
 
 # Initialize a global states mapping to assign unique StateIDs
 state_mapping = {}
+def initialize_state_mapping(states_file):
+    """Initialize the state_mapping with the existing states CSV file."""
+    if os.path.exists(states_file):
+        states_df = pd.read_csv(states_file)
+        for _, row in states_df.iterrows():
+            state_code = row["StateCode"]
+            state_mapping[state_code] = {
+                "StateID": row["StateID"],
+                "StateCode": state_code,
+                "StateName": row["StateName"]
+            }
+        print(f"State mapping initialized with {len(state_mapping)} states from {states_file}.")
+    else:
+        print(f"States file {states_file} not found. State mapping will start empty.")
+
 
 # Function to generate a unique address ID (hash)
-def generate_address_id(cnn, address, city, state, zip_code):
+def generate_address_id(ccn, address, city, state, zip_code):
     """Generate a unique ID for an address based on CNN and address hash."""
     # Use only the first 5 digits of the ZIP code
     zip_trimmed = str(zip_code)[:5] if pd.notna(zip_code) else ""
     address_str = f"{address}|{city}|{state}|{zip_trimmed}"
     address_hash = hashlib.md5(address_str.encode()).hexdigest()
-    return int(hashlib.md5(f"{cnn}{address_hash}".encode()).hexdigest(), 16) % (10**9)  # 9-digit limit
+    return int(hashlib.md5(f"{ccn}{address_hash}".encode()).hexdigest(), 16) % (10**9)  # 9-digit limit
 
 # Function to get or assign StateID
 def get_or_create_state_id(state_code):
@@ -240,7 +261,7 @@ def get_or_create_state_id(state_code):
     return state_mapping[state_code]["StateID"]
 
 # Function to extract addresses and save to CSV
-def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
+def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
     """Extract addresses from the data and save them to a CSV."""
     address_records = []
     for _, row in data.iterrows():
@@ -253,33 +274,40 @@ def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
         if not all([address_col, city_col, state_col, zip_col]):
             continue  # Skip rows with missing required columns
         
-        address = row[address_col]
+        # Handle concatenation for Address Line 1 and Address Line 2
+        if address_col == "Address Line 1":
+            address_line_1 = row["Address Line 1"]
+            address_line_2 = row.get("Address Line 2", "")  # Default to empty string if not present
+            full_address = f"{address_line_1}, {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
+        else:
+            full_address = row[address_col]
+        
         city = row[city_col]
         state = row[state_col]
         zip_code = row[zip_col]
-        cnn = row.get(cnn_column, None)
+        ccn = row.get(ccn_column, None)
         
         # Generate address ID
-        address_id = generate_address_id(cnn, address, city, state, zip_code)
+        address_id = generate_address_id(ccn, full_address, city, state, zip_code)
         
         # Assign StateID using state_mapping
         state_id = get_or_create_state_id(state)
         
         # Create address hash (for tracking uniqueness)
-        address_hash = hashlib.md5(f"{address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest()
+        address_hash = int(hashlib.md5(f"{full_address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest(), 16) % (10**9)
         
         # Append to records
         address_records.append({
-            "address_id": address_id,
-            "npi": None,  # Placeholder, not defined in requirements
-            "cnn": cnn,
-            "address": address,
-            "city": city,
-            "state_id": state_id,
-            "zip": str(zip_code)[:5],
-            "cms_addr_id": None,  # Placeholder
-            "address_hash": address_hash,
-            "primary_practice_address": False
+            "Address_ID": address_id,
+            "NPI": None,  # Placeholder, not defined in requirements
+            "CCN": ccn,
+            "Address": full_address,
+            "City": city,
+            "State_ID": state_id,
+            "Zip": str(zip_code)[:5],
+            "Cms_addr_id": None,  # Placeholder
+            "Address_Hash": address_hash,
+            "Primary_practice_address": False
         })
     
     # Save addresses to CSV
@@ -295,6 +323,8 @@ def save_states_to_csv():
     state_records = list(state_mapping.values())
     pd.DataFrame(state_records).to_csv(states_file, index=False)
     print(f"States saved to {states_file}")
+# Load the existing states.csv file to initialize state_mapping
+initialize_state_mapping(states_file)
 
 for file in files:
     try:
