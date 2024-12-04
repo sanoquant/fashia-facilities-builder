@@ -244,13 +244,13 @@ def initialize_state_mapping(states_file):
 
 
 # Function to generate a unique address ID (hash)
-def generate_address_id(cnn, address, city, state, zip_code):
+def generate_address_id(ccn, address, city, state, zip_code):
     """Generate a unique ID for an address based on CNN and address hash."""
     # Use only the first 5 digits of the ZIP code
     zip_trimmed = str(zip_code)[:5] if pd.notna(zip_code) else ""
     address_str = f"{address}|{city}|{state}|{zip_trimmed}"
     address_hash = hashlib.md5(address_str.encode()).hexdigest()
-    return int(hashlib.md5(f"{cnn}{address_hash}".encode()).hexdigest(), 16) % (10**9)  # 9-digit limit
+    return int(hashlib.md5(f"{ccn}{address_hash}".encode()).hexdigest(), 16) % (10**9)  # 9-digit limit
 
 # Function to get or assign StateID
 def get_or_create_state_id(state_code):
@@ -261,7 +261,7 @@ def get_or_create_state_id(state_code):
     return state_mapping[state_code]["StateID"]
 
 # Function to extract addresses and save to CSV
-def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
+def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
     """Extract addresses from the data and save them to a CSV."""
     address_records = []
     for _, row in data.iterrows():
@@ -285,29 +285,29 @@ def extract_addresses(data, cnn_column="CMS Certification Number (CCN)"):
         city = row[city_col]
         state = row[state_col]
         zip_code = row[zip_col]
-        cnn = row.get(cnn_column, None)
+        ccn = row.get(ccn_column, None)
         
         # Generate address ID
-        address_id = generate_address_id(cnn, full_address, city, state, zip_code)
+        address_id = generate_address_id(ccn, full_address, city, state, zip_code)
         
         # Assign StateID using state_mapping
         state_id = get_or_create_state_id(state)
         
         # Create address hash (for tracking uniqueness)
-        address_hash = hashlib.md5(f"{full_address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest()
+        address_hash = int(hashlib.md5(f"{full_address}|{city}|{state}|{str(zip_code)[:5]}".encode()).hexdigest(), 16) % (10**9)
         
         # Append to records
         address_records.append({
-            "address_id": address_id,
-            "npi": None,  # Placeholder, not defined in requirements
-            "cnn": cnn,
-            "address": full_address,
-            "city": city,
-            "state_id": state_id,
-            "zip": str(zip_code)[:5],
-            "cms_addr_id": None,  # Placeholder
-            "address_hash": address_hash,
-            "primary_practice_address": False
+            "Address_ID": address_id,
+            "NPI": None,  # Placeholder, not defined in requirements
+            "CCN": ccn,
+            "Address": full_address,
+            "City": city,
+            "State_ID": state_id,
+            "Zip": str(zip_code)[:5],
+            "Cms_addr_id": None,  # Placeholder
+            "Address_Hash": address_hash,
+            "Primary_practice_address": False
         })
     
     # Save addresses to CSV

@@ -1,11 +1,11 @@
 -- Table entities
 CREATE TABLE IF NOT EXISTS entities (
     EntityID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Name TEXT NOT NULL,
+    "Name" TEXT NOT NULL,
     CCN TEXT NOT NULL UNIQUE,
     NPI TEXT NOT NULL UNIQUE,
-    Facility_Type TEXT,
-    Facility_Subtype TEXT,
+    "Type" TEXT,
+    Subtype TEXT,
     NUCC_Code TEXT,
     Unique_facility_at_location BOOLEAN DEFAULT 0,
     Employer_group_type TEXT DEFAULT 'none',
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS addresses (
     Address_ID INTEGER PRIMARY KEY AUTOINCREMENT,
     NPI TEXT,
     CCN TEXT,
-    Address TEXT NOT NULL,
+    "Address" TEXT NOT NULL,
     City TEXT NOT NULL,
     State_ID INTEGER,
     Zip TEXT,
