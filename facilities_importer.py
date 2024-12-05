@@ -57,15 +57,15 @@ file_rules_mapping = {
     "Hospital_General_Information.csv": 
         {
             "SubRules": { 
-                "Acute Care - Veterans Administration": {"Type": "Hospital", "Subtype": "Acute care -Veterans Administration", "nucc_code": "N/A"},
-                "Acute Care Hospitals": {"Type": "Hospital", "Subtype": "Acute Care", "nucc_code": "282N00000X"},
-                "Childrens": {"Type": "Hospital", "Subtype": "Pediatric", "nucc_code": "282NC2000X"},
-                "Critical Access Hospitals": {"Type": "Hospital", "Subtype": "Critical Access", "nucc_code": "282NC0060X"},
+                "Acute Care - Veterans Administration": {"Type": "Hospital", "Subtype": "Veterans Affairs (VA) Hospital", "nucc_code": "N/A"},
+                "Acute Care Hospitals": {"Type": "Hospital", "Subtype": "General Acute Care Hospital", "nucc_code": "282N00000X"},
+                "Childrens": {"Type": "Hospital", "Subtype": "Children's Hospital", "nucc_code": "282NC2000X"},
+                "Critical Access Hospitals": {"Type": "Hospital", "Subtype": "Critical Access Hospital", "nucc_code": "282NC0060X"},
                 "Acute Care - Department of Defense": [
                     {"Type": "Hospital", "Subtype": "Military Hospital", "nucc_code": "286500000X"},
                     {"Type": "Hospital", "Subtype": "Military General acute care hospital", "nucc_code": "2865M2000X"}
                 ],
-                "Psychiatric": {"Type": "Hospital", "Subtype": "Psychiatric", "nucc_code": "283Q00000X"},
+                "Psychiatric": {"Type": "Hospital", "Subtype": "Psychiatric Hospital", "nucc_code": "283Q00000X"},
                 "Default": {"Type": None, "Subtype": None, "nucc_code": None}
             },
             "typeSubRules": "checkByFieldValue"
@@ -232,7 +232,7 @@ def initialize_state_mapping(states_file):
     if os.path.exists(states_file):
         states_df = pd.read_csv(states_file)
         for _, row in states_df.iterrows():
-            state_code = row["StateCode"]
+            state_code = row["state_code"]
             state_mapping[state_code] = {
                 "state_id": row["state_id"],
                 "state_code": state_code,

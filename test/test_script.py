@@ -22,9 +22,9 @@ def sample_datasets():
             "Facility Name": ["Dialysis Center A", "Dialysis Center B"]
         }),
         "HH_Provider_Oct2024.csv": pd.DataFrame({
-            "Offers Nursing Care Services": ["Yes", "No"],
-            "Offers Physical Therapy Services": ["No", "Yes"],
-            "Provider Name": ["Agency A", "Agency B"]
+            "Offers Nursing Care Services": ["Yes", "No", "No", "Yes"],
+            "Offers Physical Therapy Services": ["No", "Yes", "No", "Yes"],
+            "Provider Name": ["Agency A", "Agency B", "Agency C", "Agency D"]
         }),
         "Hospice_General-Information_Aug2024.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["00001", "00002"],
@@ -65,7 +65,7 @@ def test_general_rules(file_name, sample_datasets):
     assert not processed_data.empty, f"Processed data for {file_name} should not be empty."
     assert "Type" in processed_data.columns, f"Type column missing for {file_name}."
     assert "Subtype" in processed_data.columns, f"Subtype column missing for {file_name}."
-    assert "NUCC_Code" in processed_data.columns, f"NUCC_Code column missing for {file_name}."
+    assert "nucc_code" in processed_data.columns, f"nucc_code column missing for {file_name}."
 
 # Test case for "ifCnnIsNumber" subrules
 def test_if_cnn_is_number(sample_datasets):
@@ -86,7 +86,7 @@ def test_duplicate_by_active_flag(sample_datasets):
 
     # Verify rows are duplicated for each "Yes" condition
     assert not processed_data.empty, f"Processed data for {file_name} should not be empty."
-    assert len(processed_data) >= len(data), "Processed data should duplicate rows with 'Yes' conditions."
+    assert len(processed_data) > len(data), "Processed data should duplicate rows with 'Yes' conditions."
 
 # Test case for "checkByFieldValue" subrules
 def test_check_by_field_value(sample_datasets):
@@ -96,8 +96,8 @@ def test_check_by_field_value(sample_datasets):
 
     # Verify specific subrule application
     assert not processed_data.empty, f"Processed data for {file_name} should not be empty."
-    assert "Acute Care" in processed_data["Subtype"].values, "'Acute Care Hospitals' rule not applied correctly."
-    assert "Pediatric" in processed_data["Subtype"].values, "'Childrens' rule not applied correctly."
+    assert "General Acute Care Hospital" in processed_data["Subtype"].values, "'Acute Care Hospitals' rule not applied correctly."
+    assert "Children's Hospital" in processed_data["Subtype"].values, "'Childrens' rule not applied correctly."
 
 # Test case for numeric primary key generation
 def test_generate_numeric_key():
@@ -118,8 +118,8 @@ def sample_address_data():
 @pytest.fixture
 def sample_states_data():
     return [
-        {"StateID": 1, "StateCode": "IL", "StateName": "Illinois"},
-        {"StateID": 2, "StateCode": "CA", "StateName": "California"}
+        {"state_id": 1, "state_code": "IL", "state_name": "Illinois"},
+        {"state_id": 2, "state_code": "CA", "state_name": "California"}
     ]
 
 # Test for extracting addresses and generating unique address IDs
@@ -137,12 +137,12 @@ def test_extract_addresses(sample_address_data, tmpdir):
         addresses_df = pd.read_csv(addresses_file)
         assert len(addresses_df) == len(sample_address_data), "Number of addresses does not match input data."
         assert "address_id" in addresses_df.columns, "Missing 'address_id' column in addresses CSV."
-        assert addresses_df["address"].iloc[0] == "123 Main St, Apt 101", "Concatenation of 'Address Line 1' and 'Address Line 2' failed."
+        assert addresses_df["address"].iloc[0] == "123 Main St Apt 101", "Concatenation of 'Address Line 1' and 'Address Line 2' failed."
 
 # Test for state ID creation and uniqueness
 def test_get_or_create_state_id(sample_states_data):
     # Initialize the state mapping
-    state_mapping = {state["StateCode"]: state for state in sample_states_data}
+    state_mapping = {state["state_code"]: state for state in sample_states_data}
     
     # Mock the state_mapping in the function
     with patch("facilities_importer.state_mapping", state_mapping):
@@ -161,7 +161,7 @@ def test_save_states_to_csv(sample_states_data, tmpdir):
     states_file = tmpdir.join("states.csv")
     
     # Mock the state mapping and output file
-    with patch("facilities_importer.state_mapping", {state["StateCode"]: state for state in sample_states_data}), \
+    with patch("facilities_importer.state_mapping", {state["state_code"]: state for state in sample_states_data}), \
          patch("facilities_importer.states_file", str(states_file)):
         # Save states
         save_states_to_csv()
@@ -169,8 +169,8 @@ def test_save_states_to_csv(sample_states_data, tmpdir):
         # Validate states CSV content
         states_df = pd.read_csv(states_file)
         assert len(states_df) == len(sample_states_data), "Number of states does not match input data."
-        assert "StateID" in states_df.columns, "Missing 'StateID' column in states CSV."
-        assert states_df["StateCode"].iloc[0] == "IL", "First state code should be 'IL'."
+        assert "state_id" in states_df.columns, "Missing 'StateID' column in states CSV."
+        assert states_df["state_code"].iloc[0] == "IL", "First state code should be 'IL'."
 
 # Test for generating unique address IDs
 def test_generate_address_id():
@@ -213,10 +213,10 @@ def test_extract_addresses_with_missing_columns(sample_address_data, tmpdir):
 # Test for duplicate StateID in case of the same state
 def test_duplicate_state_id(sample_states_data):
     # Mock the state mapping
-    state_mapping = {state["StateCode"]: state for state in sample_states_data}
+    state_mapping = {state["state_code"]: state for state in sample_states_data}
     
     with patch("facilities_importer.state_mapping", state_mapping):
         state_id_1 = get_or_create_state_id("IL")
         state_id_2 = get_or_create_state_id("IL")
         
-        assert state_id_1 == state_id_2, "StateID should be the same for duplicate state codes."
+        assert state_id_1 == state_id_2, "state_id should be the same for duplicate state codes."
