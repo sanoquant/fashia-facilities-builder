@@ -29,44 +29,44 @@ states_file = "datasets/output/states.csv"
 
 # Dictionary of rules based on the file name
 file_rules_mapping = {
-    "DFC_FACILITY.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "NUCC_Code": "261QE0700X"},
-    "NH_ProviderInfo_Oct2024.csv": {"Type": "Nursing & Assisted Living", "Subtype": "Skilled Nursing Facility", "NUCC_Code": "314000000X"},
-    "Hospice_General-Information_Aug2024.csv": {"Type": "Agency", "Subtype": "Community Based Hospice Care Agency", "NUCC_Code": "251G00000X"},
+    "DFC_FACILITY.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "nucc_code": "261QE0700X"},
+    "NH_ProviderInfo_Oct2024.csv": {"Type": "Nursing & Assisted Living", "Subtype": "Skilled Nursing Facility", "nucc_code": "314000000X"},
+    "Hospice_General-Information_Aug2024.csv": {"Type": "Agency", "Subtype": "Community Based Hospice Care Agency", "nucc_code": "251G00000X"},
     "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv": {
         "SubRules": {
-            "true": {"Type": "Hospital", "Subtype": "Rehabilitation Hospital", "NUCC_Code": "283X00000X"},
-            "false": {"Type": "Hospital Unit", "Subtype": "Rehabilitation Hospital Unit", "NUCC_Code": "273Y00000X"},
+            "true": {"Type": "Hospital", "Subtype": "Rehabilitation Hospital", "nucc_code": "283X00000X"},
+            "false": {"Type": "Hospital Unit", "Subtype": "Rehabilitation Hospital Unit", "nucc_code": "273Y00000X"},
             },
         "typeSubRules": "ifCnnIsNumber"
         },
-    "Long-Term_Care_Hospital-General_Information_Sep2024.csv": {"Type": "Hospital", "Subtype": "Long Term Care Hospital", "NUCC_Code": "282E00000X"},
+    "Long-Term_Care_Hospital-General_Information_Sep2024.csv": {"Type": "Hospital", "Subtype": "Long Term Care Hospital", "nucc_code": "282E00000X"},
     "HH_Provider_Oct2024.csv": {
         "Type": "Agency",
         "Subtype": "Home Health Agency (All)",
-        "NUCC_Code": "251E00000X",
+        "nucc_code": "251E00000X",
         "SubRules": { 
-            "Offers Nursing Care Services": {"Type": "Agency", "Subtype": "Home Health Agency (Nursing Care Services)", "NUCC_Code": "N/A"},
-            "Offers Physical Therapy Services": {"Type": "Agency", "Subtype": "Home Health Agency (Physical Therapy)", "NUCC_Code": "N/A"},
-            "Offers Occupational Therapy Services": {"Type": "Agency", "Subtype": "Home Health Agency (Occupational Therapy)", "NUCC_Code": "N/A"},
-            "Offers Speech Pathology Services": {"Type": "Agency", "Subtype": "Home Health Agency (Speech Pathology)", "NUCC_Code": "N/A"},
-            "Offers Medical Social Services": {"Type": "Agency", "Subtype": "Home Health Agency (Medical Social Services)", "NUCC_Code": "N/A"},
-            "Offers Home Health Aide Services": {"Type": "Agency", "Subtype": "Home Health Agency (Home Health Aide Services)", "NUCC_Code": "N/A"}
+            "Offers Nursing Care Services": {"Type": "Agency", "Subtype": "Home Health Agency (Nursing Care Services)", "nucc_code": "N/A"},
+            "Offers Physical Therapy Services": {"Type": "Agency", "Subtype": "Home Health Agency (Physical Therapy)", "nucc_code": "N/A"},
+            "Offers Occupational Therapy Services": {"Type": "Agency", "Subtype": "Home Health Agency (Occupational Therapy)", "nucc_code": "N/A"},
+            "Offers Speech Pathology Services": {"Type": "Agency", "Subtype": "Home Health Agency (Speech Pathology)", "nucc_code": "N/A"},
+            "Offers Medical Social Services": {"Type": "Agency", "Subtype": "Home Health Agency (Medical Social Services)", "nucc_code": "N/A"},
+            "Offers Home Health Aide Services": {"Type": "Agency", "Subtype": "Home Health Agency (Home Health Aide Services)", "nucc_code": "N/A"}
         },
         "typeSubRules": "duplicateByActiveFlag"
     },
     "Hospital_General_Information.csv": 
         {
             "SubRules": { 
-                "Acute Care - Veterans Administration": {"Type": "Hospital", "Subtype": "Acute care -Veterans Administration", "NUCC_Code": "N/A"},
-                "Acute Care Hospitals": {"Type": "Hospital", "Subtype": "Acute Care", "NUCC_Code": "282N00000X"},
-                "Childrens": {"Type": "Hospital", "Subtype": "Pediatric", "NUCC_Code": "282NC2000X"},
-                "Critical Access Hospitals": {"Type": "Hospital", "Subtype": "Critical Access", "NUCC_Code": "282NC0060X"},
+                "Acute Care - Veterans Administration": {"Type": "Hospital", "Subtype": "Acute care -Veterans Administration", "nucc_code": "N/A"},
+                "Acute Care Hospitals": {"Type": "Hospital", "Subtype": "Acute Care", "nucc_code": "282N00000X"},
+                "Childrens": {"Type": "Hospital", "Subtype": "Pediatric", "nucc_code": "282NC2000X"},
+                "Critical Access Hospitals": {"Type": "Hospital", "Subtype": "Critical Access", "nucc_code": "282NC0060X"},
                 "Acute Care - Department of Defense": [
-                    {"Type": "Hospital", "Subtype": "Military Hospital", "NUCC_Code": "286500000X"},
-                    {"Type": "Hospital", "Subtype": "Military General acute care hospital", "NUCC_Code": "2865M2000X"}
+                    {"Type": "Hospital", "Subtype": "Military Hospital", "nucc_code": "286500000X"},
+                    {"Type": "Hospital", "Subtype": "Military General acute care hospital", "nucc_code": "2865M2000X"}
                 ],
-                "Psychiatric": {"Type": "Hospital", "Subtype": "Psychiatric", "NUCC_Code": "283Q00000X"},
-                "Default": {"Type": None, "Subtype": None, "NUCC_Code": None}
+                "Psychiatric": {"Type": "Hospital", "Subtype": "Psychiatric", "nucc_code": "283Q00000X"},
+                "Default": {"Type": None, "Subtype": None, "nucc_code": None}
             },
             "typeSubRules": "checkByFieldValue"
         }
@@ -85,35 +85,35 @@ os.makedirs(filtered_folder, exist_ok=True)
 
 # Required columns and their default values
 required_columns = {
-    "EntityID": None,  # Unique identifier for the entity
-    "Name": None,  # Name of the entity
-    "CCN": None,  # CMS Certification Number
-    "NPI": None,  # National Provider Identifier
+    "entity_id": None,  # Unique identifier for the entity
+    "name": None,  # name of the entity
+    "ccn": None,  # CMS Certification Number
+    "npi": None,  # National Provider Identifier
     "Type": None,  # General category (e.g., Hospital, Clinic)
     "Subtype": None,  # Specific classification (e.g., Rehabilitation Unit)
-    "NUCC_Code": None,  # Mapping code for type/subtype
-    "Unique_facility_at_location": 0,  # Flag for single facility at location
-    "Employer_group_type": "none",  # Group type: none, single, multi
-    "Entity_unique_to_address": 1,  # True by default
-    "Multi_speciality_facility": 0,  # False by default
-    "Multi_speciality_employer": 0,  # False by default
-    "Employer_num": None  # Employer number
+    "nucc_code": None,  # Mapping code for type/subtype
+    "unique_facility_at_location": 0,  # Flag for single facility at location
+    "employer_group_type": "none",  # Group type: none, single, multi
+    "entity_unique_to_address": 1,  # True by default
+    "multi_speciality_facility": 0,  # False by default
+    "multi_speciality_employer": 0,  # False by default
+    "employer_num": None  # Employer number
 }
 
 def map_columns(data):
     
     # Maps dataset columns to the required columns in the entities structure.
-    # Adjusts EntityID, Name, and CCN directly.
+    # Adjusts entity_id, name, and CCN directly.
     
-    data["EntityID"] = data["PrimaryKey"]  # Assign EntityID from PrimaryKey
+    data["entity_id"] = data["PrimaryKey"]  # Assign entity_id from PrimaryKey
     if "Facility Name" in data.columns:
-        data["Name"] = data["Facility Name"]  # Assign Name from Facility Name
+        data["name"] = data["Facility Name"]  # Assign name from Facility Name
     else:
-        data["Name"] = data["Provider Name"]
+        data["name"] = data["Provider Name"]
     if "Facility ID" in data.columns:
-        data["CCN"] = data["Facility ID"]  # Assign CCN from Facility ID
+        data["ccn"] = data["Facility ID"]  # Assign CCN from Facility ID
     else:
-        data["CCN"] = data["CMS Certification Number (CCN)"]  # Assign CCN from CMS Certification Number (CCN)
+        data["ccn"] = data["CMS Certification Number (CCN)"]  # Assign CCN from CMS Certification Number (CCN)
     return data
 
 def ensure_columns(entities):
@@ -159,10 +159,10 @@ def process_file(file_name, data):
     entities = []
 
     # Process general rules
-    if "Type" in rules and "Subtype" in rules and "NUCC_Code" in rules:
+    if "Type" in rules and "Subtype" in rules and "nucc_code" in rules:
         data["Type"] = rules["Type"]
         data["Subtype"] = rules["Subtype"]
-        data["NUCC_Code"] = rules["NUCC_Code"]
+        data["nucc_code"] = rules["nucc_code"]
         entities.extend(data.to_dict(orient="records"))
 
     # Process subrules
@@ -178,7 +178,7 @@ def process_file(file_name, data):
                 if not filtered_data.empty:
                     filtered_data.loc[:, "Type"] = subrule["Type"]
                     filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
-                    filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
+                    filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
                     entities.extend(filtered_data.to_dict(orient="records"))
 
         elif rules.get("typeSubRules") == "duplicateByActiveFlag":
@@ -190,7 +190,7 @@ def process_file(file_name, data):
                     if not filtered_data.empty:
                         filtered_data.loc[:, "Type"] = subrule["Type"]
                         filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
-                        filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
+                        filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
                         entities.extend(filtered_data.to_dict(orient="records"))
                 else:
                     print(f"Column '{column}' not found in {file_name}. Skipping subrule.")
@@ -207,7 +207,7 @@ def process_file(file_name, data):
                                 entity_data = filtered_data.copy()
                                 entity_data.loc[:, "Type"] = rule["Type"]
                                 entity_data.loc[:, "Subtype"] = rule["Subtype"]
-                                entity_data.loc[:, "NUCC_Code"] = rule["NUCC_Code"]
+                                entity_data.loc[:, "nucc_code"] = rule["nucc_code"]
                                 entities.extend(entity_data.to_dict(orient="records"))
                     else:
                         filtered_data = data[data["Hospital Type"] == field_value].copy()
@@ -216,7 +216,7 @@ def process_file(file_name, data):
                         if not filtered_data.empty:
                             filtered_data.loc[:, "Type"] = subrule["Type"]
                             filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
-                            filtered_data.loc[:, "NUCC_Code"] = subrule["NUCC_Code"]
+                            filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
                             entities.extend(filtered_data.to_dict(orient="records"))
             else:
                 print(f"'Hospital Type' column not found in {file_name}. Skipping checkByFieldValue subrules.")
@@ -234,9 +234,9 @@ def initialize_state_mapping(states_file):
         for _, row in states_df.iterrows():
             state_code = row["StateCode"]
             state_mapping[state_code] = {
-                "StateID": row["StateID"],
-                "StateCode": state_code,
-                "StateName": row["StateName"]
+                "state_id": row["state_id"],
+                "state_code": state_code,
+                "state_name": row["state_name"]
             }
         print(f"State mapping initialized with {len(state_mapping)} states from {states_file}.")
     else:
@@ -257,8 +257,8 @@ def get_or_create_state_id(state_code):
     """Retrieve an existing StateID or create a new one for a state code."""
     if state_code not in state_mapping:
         state_id = len(state_mapping) + 1
-        state_mapping[state_code] = {"StateID": state_id, "StateCode": state_code, "StateName": None}
-    return state_mapping[state_code]["StateID"]
+        state_mapping[state_code] = {"state_id": state_id, "state_code": state_code, "state_name": None}
+    return state_mapping[state_code]["state_id"]
 
 # Function to extract addresses and save to CSV
 def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
@@ -278,7 +278,7 @@ def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
         if address_col == "Address Line 1":
             address_line_1 = row["Address Line 1"]
             address_line_2 = row.get("Address Line 2", "")  # Default to empty string if not present
-            full_address = f"{address_line_1}, {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
+            full_address = f"{address_line_1} {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
         else:
             full_address = row[address_col]
         
@@ -298,16 +298,16 @@ def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
         
         # Append to records
         address_records.append({
-            "Address_ID": address_id,
-            "NPI": None,  # Placeholder, not defined in requirements
-            "CCN": ccn,
-            "Address": full_address,
-            "City": city,
-            "State_ID": state_id,
-            "Zip": str(zip_code)[:5],
-            "Cms_addr_id": None,  # Placeholder
-            "Address_Hash": address_hash,
-            "Primary_practice_address": False
+            "address_id": address_id,
+            "npi": None,  # Placeholder, not defined in requirements
+            "ccn": ccn,
+            "address": full_address,
+            "city": city,
+            "state_id": state_id,
+            "zip_code": str(zip_code)[:5],
+            "cms_addr_id": None,  # Placeholder
+            "address_hash": address_hash,
+            "primary_practice_address": False
         })
     
     # Save addresses to CSV
@@ -350,22 +350,23 @@ for file in files:
             filtered_data = df.dropna(subset=subset_columns, how="any")
             
             
-            if "Hospital_General_Information.csv" != file:
-                # Generate the numeric primary key from CMS Certification Number (CCN)
-                filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
-            else:
+            if "Facility ID" in filtered_data.columns:
                 # Generate the numeric primary key from Facility ID
                 filtered_data["PrimaryKey"] = filtered_data["Facility ID"].apply(generate_numeric_key)
-            
-            # Extract addresses and update state_mapping
-            extract_addresses(df)
+            else:
+                # Generate the numeric primary key from CMS Certification Number (CCN)
+                filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
             
             # Process the CMS file data based on the rules dictionary for the file
             processed_data = process_file(file, filtered_data)
             
+            
+            # Extract addresses and update state_mapping
+            extract_addresses(processed_data)
+            
+            # map the required columns
+            processed_data = map_columns(processed_data)
             # Save the generated entities to the CSV file
-            map_columns(processed_data)
-            ensure_columns(processed_data)
             save_entities_to_csv(processed_data, output_file)
             
             # Save the filtered data in the specific folder
