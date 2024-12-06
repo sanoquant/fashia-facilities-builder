@@ -2,3 +2,4 @@
 *.log
 *.pyc
 etl_env/
+.env
