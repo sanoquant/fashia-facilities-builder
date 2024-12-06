@@ -2,24 +2,24 @@ import subprocess
 
 def execute_file(file_path):
     """
-    Ejecuta un archivo Python y captura la salida.
+    Run a Python file and capture the output.
     """
     try:
-        print(f"Ejecutando: {file_path}")
+        print(f"Running: {file_path}")
         result = subprocess.run(
-            ["/usr/bin/python3", file_path],  # Ruta completa
+            ["/usr/bin/python3", file_path],  # Full route
             capture_output=True,
             text=True,
             check=True
         )
-        print(f"Salida de {file_path}:\n{result.stdout}")
+        print(f"Output of {file_path}:\n{result.stdout}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"Error ejecutando {file_path}: {e.stderr}")
+        print(f"Error executing {file_path}: {e.stderr}")
         return False
 
 def main():
-    # Lista de archivos a ejecutar en cadena
+    # List of files to be executed in a chain
     files_to_execute = [
         "filter_nppes_data.py",
         "facilities_importer.py",
@@ -31,10 +31,10 @@ def main():
     for file in files_to_execute:
         success = execute_file(file)
         if not success:
-            print(f"Deteniendo ejecución debido a un error en {file}.")
+            print(f"Stopping execution due to an error in {file}.")
             break
     else:
-        print("Todos los archivos se ejecutaron correctamente.")
+        print("All files executed successfully.")
 
 if __name__ == "__main__":
     main()
