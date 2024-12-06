@@ -8,21 +8,21 @@ cursor = conn.cursor()
 
 # Identify duplicate hashes
 duplicated_hashes = pd.read_sql_query("""
-    SELECT Address_Hash
+    SELECT address_hash
     FROM addresses
-    GROUP BY Address_Hash
+    GROUP BY address_hash
     HAVING COUNT(*) > 1;
 """, conn)
 # Update related entities
-for hash_value in duplicated_hashes['Address_Hash']:
+for hash_value in duplicated_hashes['address_hash']:
     update_query = f"""
         UPDATE entities
-        SET Entity_unique_to_address = FALSE
-        WHERE CCN IN (
-            SELECT e.CCN
+        SET entity_unique_to_address = FALSE
+        WHERE ccn IN (
+            SELECT e.ccn
             FROM entities e
-            JOIN addresses a ON e.CCN = a.CCN
-            WHERE a.Address_Hash = '{hash_value}'
+            JOIN addresses a ON e.ccn = a.ccn
+            WHERE a.address_hash = '{hash_value}'
         );
     """
     cursor.execute(update_query)
@@ -30,9 +30,9 @@ for hash_value in duplicated_hashes['Address_Hash']:
 conn.commit()
 # audit process
 updated_entities = pd.read_sql_query("""
-    SELECT CCN, NPI, Entity_unique_to_address
+    SELECT ccn, npi, entity_unique_to_address
     FROM entities
-    WHERE Entity_unique_to_address = FALSE;
+    WHERE entity_unique_to_address = FALSE;
 """, conn)
 updated_entities.to_csv('datasets/output/updated_entities_log.csv', index=False)
 conn.close()

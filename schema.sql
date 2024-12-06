@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS entities (
 CREATE TABLE IF NOT EXISTS addresses (
     address_id INTEGER PRIMARY KEY AUTOINCREMENT,
     npi TEXT,
-    cnn TEXT,
-    address TEXT NOT NULL,
+    ccn TEXT,
+    "address" TEXT NOT NULL,
     city TEXT NOT NULL,
     state_id INTEGER,
     zip_code TEXT,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS addresses (
     primary_practice_address BOOLEAN DEFAULT 0,
     FOREIGN KEY (state_id) REFERENCES states(state_id),
     FOREIGN KEY (npi) REFERENCES entities(npi) ON DELETE CASCADE,
-    FOREIGN KEY (cnn) REFERENCES entities(ccn) ON DELETE CASCADE
+    FOREIGN KEY (ccn) REFERENCES entities(ccn) ON DELETE CASCADE
 );
 
 -- Table states
