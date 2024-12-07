@@ -1,17 +1,20 @@
 import os
 import pandas as pd
 import hashlib
+import math
 print("Environment setup complete!")
 
 
 # List of files
 files = [
-    "DFC_FACILITY.csv",
-         "HH_Provider_Oct2024.csv",
-         "Hospice_General-Information_Aug2024.csv",
-         "Hospital_General_Information.csv",
-         "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv",
-         "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
+    "DFC_FACILITY.csv", # dialysis facility dataset
+    "HH_Provider_Oct2024.csv", # home health agency dataset
+    "Hospice_General-Information_Aug2024.csv", # hospice dataset
+    "Hospital_General_Information.csv", # hospital general information dataset
+    "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", # inpatient rehabilitation facility dataset
+    "Long-Term_Care_Hospital-General_Information_Sep2024.csv", # long term care hospital dataset
+    "NH_ProviderInfo_Oct2024.csv" # nursing home dataset
+]
 
 
 # Create the folder for filtered files if it doesn't exist
@@ -276,17 +279,21 @@ def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
         
         # Handle concatenation for Address Line 1 and Address Line 2
         if address_col == "Address Line 1":
-            address_line_1 = row["Address Line 1"]
-            address_line_2 = row.get("Address Line 2", "")  # Default to empty string if not present
-            full_address = f"{address_line_1} {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
+            address_line_2 = row.get("Address Line 2", "")
+
+            if address_line_2 and not (isinstance(address_line_2, float) and math.isnan(address_line_2)):
+                full_address = f"{row['Address Line 1']} {address_line_2}".strip(", ")
+            else:
+                full_address = row["Address Line 1"]
+
         else:
             full_address = row[address_col]
-        
+
         city = row[city_col]
         state = row[state_col]
         zip_code = row[zip_col]
         ccn = row.get(ccn_column, None)
-        
+
         # Generate address ID
         address_id = generate_address_id(ccn, full_address, city, state, zip_code)
         
@@ -348,11 +355,12 @@ for file in files:
             # Filter rows with missing values
             subset_columns = list(dynamic_columns.values())  # Use dynamically found columns
             filtered_data = df.dropna(subset=subset_columns, how="any")
-            
+            ccn_column = "CMS Certification Number (CCN)"
             
             if "Facility ID" in filtered_data.columns:
                 # Generate the numeric primary key from Facility ID
                 filtered_data["PrimaryKey"] = filtered_data["Facility ID"].apply(generate_numeric_key)
+                ccn_column = "Facility ID"
             else:
                 # Generate the numeric primary key from CMS Certification Number (CCN)
                 filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
@@ -362,7 +370,7 @@ for file in files:
             
             
             # Extract addresses and update state_mapping
-            extract_addresses(processed_data)
+            extract_addresses(processed_data, ccn_column)
             
             # map the required columns
             processed_data = map_columns(processed_data)
