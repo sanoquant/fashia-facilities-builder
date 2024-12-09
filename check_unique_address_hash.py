@@ -36,4 +36,4 @@ updated_entities = pd.read_sql_query("""
 """, conn)
 updated_entities.to_csv('datasets/output/updated_entities_log.csv', index=False)
 conn.close()
-print("Proceso completado con éxito.")
+print("Process completed successfully.")

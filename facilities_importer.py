@@ -355,7 +355,7 @@ for file in files:
             # Filter rows with missing values
             subset_columns = list(dynamic_columns.values())  # Use dynamically found columns
             filtered_data = df.dropna(subset=subset_columns, how="any")
-            ccn_column = "CMS Certification Number (CCN)"
+            
             
             if "Facility ID" in filtered_data.columns:
                 # Generate the numeric primary key from Facility ID
@@ -364,7 +364,7 @@ for file in files:
             else:
                 # Generate the numeric primary key from CMS Certification Number (CCN)
                 filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
-            
+                ccn_column = "CMS Certification Number (CCN)"
             # Process the CMS file data based on the rules dictionary for the file
             processed_data = process_file(file, filtered_data)
             
