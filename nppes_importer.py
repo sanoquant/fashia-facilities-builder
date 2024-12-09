@@ -137,10 +137,11 @@ def process_nppes(nppes_data, cms_data):
 
     return updated_cms_records, new_entities, new_address
 
-def save_to_csv(updated_cms_records, new_entities):
+def save_to_csv(updated_cms_records, new_entities, extract_addresses):
     """Save updated CMS records and new entities to CSV files."""
     pd.DataFrame(updated_cms_records).to_csv(output_updated_cms, index=False)
     pd.DataFrame(new_entities).to_csv(output_new_entities, index=False)
+    pd.DataFrame(extract_addresses).to_csv(addresses_file, mode='a', index=False, header=False)
     print("Files saved successfully.")
 
 # Initialize a global states mapping to assign unique StateIDs
@@ -239,7 +240,7 @@ def main():
     updated_cms_records, new_entities, extract_addresses = process_nppes(nppes_data, cms_data)
     print(f"Updated CMS Records: {len(updated_cms_records)}")
     print(f"New Entities: {len(new_entities)}")
-    save_to_csv(updated_cms_records, new_entities)
+    save_to_csv(updated_cms_records, new_entities, extract_addresses)
     print("Processing complete.")
 
 if __name__ == "__main__":
