@@ -5,7 +5,7 @@ import hashlib
 # File paths
 nppes_file = "./datasets/filtered/nppes_filtered_data.csv"  # Input NPPES dataset
 cms_file = "./datasets/output/entities.csv"      # Input CMS dataset
-output_updated_cms = "updated_cms_data.csv"  # Output for updated CMS records
+output_updated_cms = "./datasets/output/updated_cms_data.csv"  # Output for updated CMS records
 output_new_entities = "new_entities.csv"    # Output for new entities
 # Output files for the Addresses and States tables
 addresses_file = "datasets/output/addresses.csv"
@@ -28,11 +28,12 @@ def compare_and_update(row, cms_row):
     """Compare CMS file record name with alternatives and update CMS data."""
     alternative_fields = ["Provider Organization Name (Legal Business Name)", "Parent Organization LBN", "Provider Other Organization Name"]  # Replace with actual column names
     for alt_field in alternative_fields:
-        if row[alt_field].strip().lower() == cms_row["name"].strip().lower():
+        alt_field_value = str(row[alt_field]).strip().lower() if pd.notna(row[alt_field]) else ""
+        cms_name_value = str(cms_row["name"]).strip().lower() if pd.notna(cms_row["name"]) else ""
+        if alt_field_value == cms_name_value:
             # Update CMS data with NPPES fields but keep CMS address
             cms_row["npi"] = row["NPI"]
             cms_row["Type"] = row["Entity Type Code"]
-            cms_row["address"] = cms_row["address"]  # Retain CMS address
             return cms_row, True
     return row, False
 
@@ -123,26 +124,65 @@ def process_nppes(nppes_data, cms_data):
                                 updated_cms_records.append(updated_row)
                             else:
                                 entity, address = map_row_to_entity(nppes_row, taxonomy_field)
-                                new_entities.append(entity.to_dict())
-                                new_address.append(address.to_dict())
+                                new_entities.append(entity)
+                                new_address.append(address)
                     else:
                         entity, address = map_row_to_entity(nppes_row, taxonomy_field)
-                        new_entities.append(entity.to_dict())
-                        new_address.append(address.to_dict())
+                        new_entities.append(entity)
+                        new_address.append(address)
                 else:
                     entity, address = map_row_to_entity(nppes_row, taxonomy_field)
-                    new_entities.append(entity.to_dict())
-                    new_address.append(address.to_dict())
+                    new_entities.append(entity)
+                    new_address.append(address)
                 break
 
     return updated_cms_records, new_entities, new_address
 
-def save_to_csv(updated_cms_records, new_entities, extract_addresses):
-    """Save updated CMS records and new entities to CSV files."""
-    pd.DataFrame(updated_cms_records).to_csv(output_updated_cms, index=False)
-    pd.DataFrame(new_entities).to_csv(output_new_entities, index=False)
-    pd.DataFrame(extract_addresses).to_csv(addresses_file, mode='a', index=False, header=False)
-    print("Files saved successfully.")
+def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
+    """Update CMS file with new and updated entities."""
+    # Load the existing CMS entities file
+    if os.path.exists(cms_file):
+        cms_entities = pd.read_csv(cms_file)
+    else:
+        cms_entities = pd.DataFrame(columns=required_columns.keys())  # Initialize with required columns
+
+    # Convert updated CMS records and new entities to DataFrames
+    updated_cms_df = pd.DataFrame(updated_cms_records)
+    new_entities_df = pd.DataFrame(new_entities)
+
+    # Ensure unique indices for CMS entities
+    if "entity_id" in cms_entities.columns:
+        cms_entities = cms_entities.drop_duplicates(subset="entity_id").set_index("entity_id")
+    else:
+        cms_entities = cms_entities.set_index("entity_id", drop=False)
+
+    if not updated_cms_df.empty:
+        # Ensure unique indices for updated records
+        updated_cms_df = updated_cms_df.drop_duplicates(subset="entity_id").set_index("entity_id")
+        # Update CMS entities with updated records
+        cms_entities.update(updated_cms_df)
+
+    # Add new entities to the DataFrame
+    if not new_entities_df.empty:
+        # Ensure consistency in columns
+        new_entities_df = new_entities_df.reindex(columns=cms_entities.columns, fill_value=None)
+        # Avoid duplicates by checking `entity_id`
+        new_entities_df = new_entities_df[~new_entities_df.index.isin(cms_entities.index)]
+        cms_entities = pd.concat([cms_entities, new_entities_df], ignore_index=False)
+
+    # Save the updated entities back to the CMS file
+    cms_entities.reset_index().to_csv(cms_file, index=False)
+
+    # Save the new addresses to the addresses file
+    if extract_addresses:
+        if os.path.exists(addresses_file):
+            pd.DataFrame(extract_addresses).to_csv(addresses_file, mode='a', index=False, header=False)
+        else:
+            pd.DataFrame(extract_addresses).to_csv(addresses_file, index=False)
+
+    print(f"CMS file updated with {len(updated_cms_records)} updated records and {len(new_entities)} new entities.")
+    print("Addresses saved successfully.")
+
 
 # Initialize a global states mapping to assign unique StateIDs
 state_mapping = {}
@@ -182,13 +222,13 @@ def get_or_create_state_id(state_code):
 def extract_addresses(row, npi_column="NPI"):
     """Extract address from the data and return address record"""
     # Dynamically map columns
-    address_col = next((alt for alt in column_mapping_address["Address"] if alt in row.columns), None)
-    city_col = next((alt for alt in column_mapping_address["City"] if alt in row.columns), None)
-    state_col = next((alt for alt in column_mapping_address["State"] if alt in row.columns), None)
-    zip_col = next((alt for alt in column_mapping_address["ZipCode"] if alt in row.columns), None)
+    address_col = next((alt for alt in column_mapping_address["Address"] if alt in row.index), None)
+    city_col = next((alt for alt in column_mapping_address["City"] if alt in row.index), None)
+    state_col = next((alt for alt in column_mapping_address["State"] if alt in row.index), None)
+    zip_col = next((alt for alt in column_mapping_address["ZipCode"] if alt in row.index), None)
     
     if not all([address_col, city_col, state_col, zip_col]):
-        return {}  # Skip rows with missing required columns
+        return None  # Skip if any required column is missing
     
     # Handle concatenation for Address Line 1 and Address Line 2
     if address_col == "Provider First Line Business Practice Location Address":
@@ -240,7 +280,7 @@ def main():
     updated_cms_records, new_entities, extract_addresses = process_nppes(nppes_data, cms_data)
     print(f"Updated CMS Records: {len(updated_cms_records)}")
     print(f"New Entities: {len(new_entities)}")
-    save_to_csv(updated_cms_records, new_entities, extract_addresses)
+    save_to_cms_file(updated_cms_records, new_entities, extract_addresses)
     print("Processing complete.")
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ def main():
     files_to_execute = [
         "filter_nppes_data.py",
         "facilities_importer.py",
+        "nppes_importer.py",
         "setup_database.py",
         "check_unique_address_hash.py",
         "address_geocoder.py"
