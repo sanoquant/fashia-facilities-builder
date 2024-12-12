@@ -3,20 +3,23 @@ import pandas as pd
 import hashlib
 
 # File paths
-nppes_file = "./datasets/filtered/nppes_filtered_data.csv"  # Input NPPES dataset
+nppes_file = "./datasets/filtered/nppes_filtered_data_1.csv"  # Input NPPES dataset
 cms_file = "./datasets/output/entities.csv"      # Input CMS dataset
 output_updated_cms = "./datasets/output/updated_cms_data.csv"  # Output for updated CMS records
 output_new_entities = "new_entities.csv"    # Output for new entities
 # Output files for the Addresses and States tables
 addresses_file = "datasets/output/addresses.csv"
 states_file = "datasets/output/states.csv"
+# Reload the taxonomy data file
+file_path_taxonomy_data = './NPPES_dictionary.csv'
+
 # Constants
 CMS_TAXONOMY_CODE = "251G00000X"  # Specific taxonomy code for comparison
 TAXONOMY_KEYWORD = "Taxonomy Code"    # Keyword to find taxonomy fields
 
 def load_datasets(nppes_file, cms_file):
     """Load the NPPES and CMS datasets into pandas DataFrames."""
-    nppes_data = pd.read_csv(nppes_file)
+    nppes_data = pd.read_csv(nppes_file, dtype={"NPI": str})
     cms_data = pd.read_csv(cms_file)
     return nppes_data, cms_data
 
@@ -33,18 +36,17 @@ def compare_and_update(row, cms_row):
         if alt_field_value == cms_name_value:
             # Update CMS data with NPPES fields but keep CMS address
             cms_row["npi"] = row["NPI"]
-            cms_row["Type"] = row["Entity Type Code"]
             return cms_row, True
     return row, False
 
 # Required columns and their default values
 required_columns = {
     "entity_id": None,  # Unique identifier for the entity
-    "name": None,  # Name of the entity
+    "name": None,  # name of the entity
     "ccn": None,  # CMS Certification Number
     "npi": None,  # National Provider Identifier
-    "type": None,  # General category (e.g., Hospital, Clinic)
-    "subtype": None,  # Specific classification (e.g., Rehabilitation Unit)
+    "Type": None,  # General category (e.g., Hospital, Clinic)
+    "Subtype": None,  # Specific classification (e.g., Rehabilitation Unit)
     "nucc_code": None,  # Mapping code for type/subtype
     "unique_facility_at_location": 0,  # Flag for single facility at location
     "employer_group_type": "none",  # Group type: none, single, multi
@@ -59,7 +61,6 @@ required_columns = {
 column_mapping = {
     "name": ["Provider Organization Name (Legal Business Name)", "Parent Organization LBN", "Provider Other Organization Name"],
     "npi": ["NPI"],
-    "type": ["Entity Type Code"],
     #"Address": ["Provider First Line Business Practice Location Address", "Provider Second Line Business Practice Location Address"],
     #"City": ["Provider Business Practice Location Address City Name"],  # No alternatives
     #"State": ["Provider Business Practice Location Address State Name"],  # No alternatives
@@ -73,106 +74,214 @@ column_mapping_address = {
     "ZipCode": ["Provider Business Practice Location Address Postal Code"]  # No alternatives
 }
 
-def map_row_to_entity(row, taxonomy_field):
+def map_row_to_entity(row, taxonomy_field, taxonomy_mapping):
     """
-    Map a single row to the required entity format.
+    Assigns the nucc_code, type, and subtype based on a given taxonomy field.
+    
+    Parameters:
+    - row: A pandas Series representing a row in the dataset.
+    - taxonomy_field: The name of the column in the dataset that corresponds to the taxonomy code.
+    - taxonomy_mapping: the taxonomy data dictionary of NPPES
+    
+    Returns:
+    - A dictionary with nucc_code, type, and subtype values.
     """
     entity = {col: default_value for col, default_value in required_columns.items()}
 
-    # Map each required column to its corresponding value in the row
+    # Assign values from column mapping
     for target_col, alt_names in column_mapping.items():
         for alt_name in alt_names:
             if alt_name in row and pd.notna(row[alt_name]):
                 entity[target_col] = row[alt_name]
                 break
-            elif taxonomy_field in row and pd.notna(row[taxonomy_field]):
-                entity["nucc_code"] = row[taxonomy_field]
-                # Add derived fields or logic as needed
-                entity["entity_id"] = generate_numeric_key(row["NPI"])
+    
+    taxonomy_code = str(row.get(taxonomy_field, "")).strip()
+    if taxonomy_code in taxonomy_mapping:
+        details = taxonomy_mapping[taxonomy_code]
+        entity["nucc_code"] = taxonomy_code
+        entity["Type"] = details["type"]
+        entity["Subtype"] = details["subtype"]
+        print(entity)
+    else:
+        print(taxonomy_code)
+        entity["nucc_code"] = taxonomy_code
+        entity["Type"] = "Clinical Location"
+        entity["Subtype"] = None
+        print(entity)
+    # Add derived fields or logic as needed
+    entity["entity_id"] = generate_numeric_key(row["NPI"], taxonomy_field)
     # Extract addresses and update state_mapping
-    address = extract_addresses(row, "NPI")
+    #address = extract_addresses(row, "NPI")
+    return entity#, address
 
-    return entity, address
 # Function to generate a numeric primary key
-def generate_numeric_key(npi):
-    if not str(npi).isnumeric():
-        # Converts CCN into a numeric hash
-        return int(hashlib.md5(str(npi).encode()).hexdigest(), 16) % (10**9)  # Limits to 9 digits
-    return int(npi)
+def generate_numeric_key(npi, taxonomy_field):
+    """
+    Generate a numeric primary key using NPI and an additional taxonomy field.
 
-def process_nppes(nppes_data, cms_data):
+    Parameters:
+    - npi: National Provider Identifier (NPI)
+    - taxonomy_field: Additional field (e.g., taxonomy code) to ensure uniqueness.
+
+    Returns:
+    - A numeric primary key (up to 9 digits).
+    """
+    combined_key = f"{npi}|{taxonomy_field}"  # Combine NPI and taxonomy field
+    return int(hashlib.md5(combined_key.encode()).hexdigest(), 16) % (10**9)  # Limits to 9 digits
+
+def validate_and_remove_second_duplicate_within_row(row, taxonomy_fields):
+    """
+    Validate and remove only the second occurrence of duplicate values within a single row for specified fields.
+    The first occurrence is kept, and the second occurrence is set to None.
+    
+    Parameters:
+        row (pd.Series): The row to validate.
+        taxonomy_fields (list): List of column names to check for duplicates.
+    
+    Returns:
+        pd.Series: The modified row with only the second duplicates removed.
+    """
+    seen_values = set()
+    for field in taxonomy_fields:
+        if field in row.index and pd.notna(row[field]):  # Check if the field exists and is not NaN
+            if row[field] in seen_values:
+                row[field] = None  # Remove only the second occurrence
+            else:
+                seen_values.add(row[field])  # Track the first occurrence
+    return row
+
+def process_nppes(nppes_data, cms_data, ):
     """Process the NPPES dataset based on the flow."""
     taxonomy_fields = find_taxonomy_fields(nppes_data.columns)
+    taxonomy_data = pd.read_csv(file_path_taxonomy_data)
+    # Create the taxonomy_mapping dictionary
+    taxonomy_mapping = taxonomy_data.set_index("NUCC Code").T.to_dict()
+    taxonomy_mapping = {key: {"type": value["Fashia - Facility Type"], "subtype": value["Fashia - Facility Subtype"]}
+                        for key, value in taxonomy_mapping.items()}
+    print(taxonomy_mapping)
     updated_cms_records = []
     new_entities = []
     new_address = []
+    
+    # Duplicate records are removed in fields by taxonomy
+    nppes_data = nppes_data.apply(lambda row: validate_and_remove_second_duplicate_within_row(row, taxonomy_fields), axis=1)
 
     for _, nppes_row in nppes_data.iterrows():
-        taxonomy_found = False
+        new_entity_address = False
+        # Extract addresses and update state_mapping
+        address = extract_addresses(nppes_row, "NPI")
 
         for taxonomy_field in taxonomy_fields:
             if pd.notna(nppes_row[taxonomy_field]):  # Ensure field is not NaN
+                
+                #new_address.append(extract_addresses(nppes_row, "NPI"))
                 taxonomy_code = nppes_row[taxonomy_field]
                 cms_match = cms_data[cms_data["nucc_code"] == taxonomy_code]
 
                 if not cms_match.empty:
-                    taxonomy_found = True
                     if taxonomy_code == CMS_TAXONOMY_CODE:
+                        updated_entity = False
                         for _, cms_row in cms_match.iterrows():
                             updated_row, updated = compare_and_update(nppes_row, cms_row)
                             if updated:
                                 updated_cms_records.append(updated_row)
-                            else:
-                                entity, address = map_row_to_entity(nppes_row, taxonomy_field)
-                                new_entities.append(entity)
-                                new_address.append(address)
+                                updated_entity = True
+                        if not updated_entity:
+                            entity = map_row_to_entity(nppes_row, taxonomy_field, taxonomy_mapping)
+                            new_entities.append(entity)
+                            new_entity_address = True
                     else:
-                        entity, address = map_row_to_entity(nppes_row, taxonomy_field)
-                        new_entities.append(entity)
-                        new_address.append(address)
+                        continue
                 else:
-                    entity, address = map_row_to_entity(nppes_row, taxonomy_field)
+                    entity = map_row_to_entity(nppes_row, taxonomy_field, taxonomy_mapping)
                     new_entities.append(entity)
-                    new_address.append(address)
-                break
+                    new_entity_address = True
+        if new_entity_address:
+            new_address.append(address)
 
     return updated_cms_records, new_entities, new_address
 
 def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
-    """Update CMS file with new and updated entities."""
+    print("\n\n\nUpdated CMS Records Preview:")
+    print(pd.DataFrame(updated_cms_records).head())
+
+    print("\n\n\nNew Entities Preview:")
+    print(pd.DataFrame(new_entities).head())
+    
+    updated_cms_file = "./datasets/output/updated_cms_records.csv"
+    if updated_cms_records:
+        pd.DataFrame(updated_cms_records).to_csv(updated_cms_file, index=False)
+        print(f"Updated CMS records saved to {updated_cms_file}.")
+    else:
+        print("No updated CMS records to save.")
+
+    # Save new entities to a separate file
+    new_entities_file = "./datasets/output/new_entities.csv"
+    if new_entities:
+        pd.DataFrame(new_entities).to_csv(new_entities_file, index=False)
+        print(f"New entities saved to {new_entities_file}.")
+    else:
+        print("No new entities to save.")
+    
     # Load the existing CMS entities file
     if os.path.exists(cms_file):
-        cms_entities = pd.read_csv(cms_file)
+        cms_entities = pd.read_csv(cms_file,
+            dtype={
+                "entity_id": str,  # Forzar NPI como cadena
+                "Type": str,  # Forzar Taxonomy Codes como cadenas
+                "Subtype": str,  # Repetir para todos los campos relevantes
+            },
+            low_memory=False  # Desactiva la carga optimizada para evitar fragmentación de tipos
+        )
     else:
         cms_entities = pd.DataFrame(columns=required_columns.keys())  # Initialize with required columns
 
     # Convert updated CMS records and new entities to DataFrames
-    updated_cms_df = pd.DataFrame(updated_cms_records)
-    new_entities_df = pd.DataFrame(new_entities)
+    if updated_cms_records:
+        updated_cms_df = pd.DataFrame(updated_cms_records)
+        updated_cms_df = updated_cms_df.drop_duplicates(subset="entity_id")  # Ensure no duplicates
+    else:
+        updated_cms_df = pd.DataFrame(columns=cms_entities.columns)
+
+    if new_entities:
+        new_entities_df = pd.DataFrame(new_entities)
+        new_entities_df = new_entities_df.drop_duplicates(subset="entity_id")  # Ensure no duplicates
+    else:
+        new_entities_df = pd.DataFrame(columns=cms_entities.columns)
+        
+    # Ensure the columns of new_entities_df match exactly with cms_entities
+    missing_columns = set(cms_entities.columns) - set(new_entities_df.columns)
+    for col in missing_columns:
+        new_entities_df[col] = None  # Add missing columns with default value
+
+    # Reorder columns in new_entities_df to match cms_entities
+    new_entities_df = new_entities_df[cms_entities.columns]
 
     # Ensure unique indices for CMS entities
     if "entity_id" in cms_entities.columns:
-        cms_entities = cms_entities.drop_duplicates(subset="entity_id").set_index("entity_id")
-    else:
-        cms_entities = cms_entities.set_index("entity_id", drop=False)
+        cms_entities = cms_entities.drop_duplicates(subset="entity_id")
+        cms_entities = cms_entities.reset_index(drop=True)
+        updated_cms_df = updated_cms_df.reset_index(drop=True)
 
+    # Update the existing entities with updated CMS records
     if not updated_cms_df.empty:
-        # Ensure unique indices for updated records
-        updated_cms_df = updated_cms_df.drop_duplicates(subset="entity_id").set_index("entity_id")
-        # Update CMS entities with updated records
-        cms_entities.update(updated_cms_df)
+        # Merge updated records into CMS entities
+        cms_entities = pd.concat([cms_entities, updated_cms_df]).drop_duplicates(subset="entity_id", keep="last")
 
-    # Add new entities to the DataFrame
+    # Ensure new_entities_df retains all columns and values
     if not new_entities_df.empty:
-        # Ensure consistency in columns
-        new_entities_df = new_entities_df.reindex(columns=cms_entities.columns, fill_value=None)
-        # Avoid duplicates by checking `entity_id`
-        new_entities_df = new_entities_df[~new_entities_df.index.isin(cms_entities.index)]
-        cms_entities = pd.concat([cms_entities, new_entities_df], ignore_index=False)
+        missing_columns = set(cms_entities.columns) - set(new_entities_df.columns)
+        for col in missing_columns:
+            new_entities_df[col] = None
+        new_entities_df = new_entities_df[cms_entities.columns]
 
-    # Save the updated entities back to the CMS file
-    cms_entities.reset_index().to_csv(cms_file, index=False)
+        # Avoid duplicates and append new entities
+        new_entities_df = new_entities_df.drop_duplicates(subset="entity_id")
+        cms_entities = pd.concat([cms_entities, new_entities_df], ignore_index=True)
 
+    # Save the updated entities back to the file
+    cms_entities.to_csv(cms_file, index=False)
+    
     # Save the new addresses to the addresses file
     if extract_addresses:
         if os.path.exists(addresses_file):
