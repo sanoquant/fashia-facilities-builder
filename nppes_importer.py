@@ -5,7 +5,6 @@ import hashlib
 # File paths
 nppes_file = "./datasets/filtered/nppes_filtered_data_1.csv"  # Input NPPES dataset
 cms_file = "./datasets/output/entities.csv"      # Input CMS dataset
-output_updated_cms = "./datasets/output/updated_cms_data.csv"  # Output for updated CMS records
 output_new_entities = "new_entities.csv"    # Output for new entities
 # Output files for the Addresses and States tables
 addresses_file = "datasets/output/addresses.csv"
@@ -28,16 +27,14 @@ def find_taxonomy_fields(columns):
     return [col for col in columns if TAXONOMY_KEYWORD.lower() in col.lower()]
 
 def compare_and_update(row, cms_row):
-    """Compare CMS file record name with alternatives and update CMS data."""
+    """Compare CMS file record name with alternatives."""
     alternative_fields = ["Provider Organization Name (Legal Business Name)", "Parent Organization LBN", "Provider Other Organization Name"]  # Replace with actual column names
     for alt_field in alternative_fields:
         alt_field_value = str(row[alt_field]).strip().lower() if pd.notna(row[alt_field]) else ""
         cms_name_value = str(cms_row["name"]).strip().lower() if pd.notna(cms_row["name"]) else ""
         if alt_field_value == cms_name_value:
-            # Update CMS data with NPPES fields but keep CMS address
-            cms_row["npi"] = row["NPI"]
-            return cms_row, True
-    return row, False
+            return True
+    return False
 
 # Required columns and their default values
 required_columns = {
@@ -159,7 +156,6 @@ def process_nppes(nppes_data, cms_data, ):
     taxonomy_mapping = {key: {"type": value["Fashia - Facility Type"], "subtype": value["Fashia - Facility Subtype"]}
                         for key, value in taxonomy_mapping.items()}
     print(taxonomy_mapping)
-    updated_cms_records = []
     new_entities = []
     new_address = []
     
@@ -182,9 +178,8 @@ def process_nppes(nppes_data, cms_data, ):
                     if taxonomy_code == CMS_TAXONOMY_CODE:
                         updated_entity = False
                         for _, cms_row in cms_match.iterrows():
-                            updated_row, updated = compare_and_update(nppes_row, cms_row)
+                            updated = compare_and_update(nppes_row, cms_row)
                             if updated:
-                                updated_cms_records.append(updated_row)
                                 updated_entity = True
                         if not updated_entity:
                             entity = map_row_to_entity(nppes_row, taxonomy_field, taxonomy_mapping)
@@ -199,21 +194,11 @@ def process_nppes(nppes_data, cms_data, ):
         if new_entity_address:
             new_address.append(address)
 
-    return updated_cms_records, new_entities, new_address
+    return new_entities, new_address
 
-def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
-    print("\n\n\nUpdated CMS Records Preview:")
-    print(pd.DataFrame(updated_cms_records).head())
-
+def save_to_cms_file(new_entities, extract_addresses):
     print("\n\n\nNew Entities Preview:")
     print(pd.DataFrame(new_entities).head())
-    
-    updated_cms_file = "./datasets/output/updated_cms_records.csv"
-    if updated_cms_records:
-        pd.DataFrame(updated_cms_records).to_csv(updated_cms_file, index=False)
-        print(f"Updated CMS records saved to {updated_cms_file}.")
-    else:
-        print("No updated CMS records to save.")
 
     # Save new entities to a separate file
     new_entities_file = "./datasets/output/new_entities.csv"
@@ -236,12 +221,6 @@ def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
     else:
         cms_entities = pd.DataFrame(columns=required_columns.keys())  # Initialize with required columns
 
-    # Convert updated CMS records and new entities to DataFrames
-    if updated_cms_records:
-        updated_cms_df = pd.DataFrame(updated_cms_records)
-        updated_cms_df = updated_cms_df.drop_duplicates(subset="entity_id")  # Ensure no duplicates
-    else:
-        updated_cms_df = pd.DataFrame(columns=cms_entities.columns)
 
     if new_entities:
         new_entities_df = pd.DataFrame(new_entities)
@@ -261,13 +240,7 @@ def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
     if "entity_id" in cms_entities.columns:
         cms_entities = cms_entities.drop_duplicates(subset="entity_id")
         cms_entities = cms_entities.reset_index(drop=True)
-        updated_cms_df = updated_cms_df.reset_index(drop=True)
-
-    # Update the existing entities with updated CMS records
-    if not updated_cms_df.empty:
-        # Merge updated records into CMS entities
-        cms_entities = pd.concat([cms_entities, updated_cms_df]).drop_duplicates(subset="entity_id", keep="last")
-
+    
     # Ensure new_entities_df retains all columns and values
     if not new_entities_df.empty:
         missing_columns = set(cms_entities.columns) - set(new_entities_df.columns)
@@ -289,7 +262,7 @@ def save_to_cms_file(updated_cms_records, new_entities, extract_addresses):
         else:
             pd.DataFrame(extract_addresses).to_csv(addresses_file, index=False)
 
-    print(f"CMS file updated with {len(updated_cms_records)} updated records and {len(new_entities)} new entities.")
+    print(f"CMS file updated with {len(new_entities)} new entities.")
     print("Addresses saved successfully.")
 
 
@@ -343,6 +316,9 @@ def extract_addresses(row, npi_column="NPI"):
     if address_col == "Provider First Line Business Practice Location Address":
         address_line_1 = row["Provider First Line Business Practice Location Address"]
         address_line_2 = row.get("Provider Second Line Business Practice Location Address", "")  # Default to empty string if not present
+        # Check if address_line_2 is NaN and replace it with an empty string
+        if pd.isna(address_line_2):
+            address_line_2 = ""
         full_address = f"{address_line_1} {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
     else:
         full_address = row[address_col]
@@ -386,10 +362,9 @@ def main():
     nppes_data, cms_data = load_datasets(nppes_file, cms_file)
     
     print("Processing NPPES data...")
-    updated_cms_records, new_entities, extract_addresses = process_nppes(nppes_data, cms_data)
-    print(f"Updated CMS Records: {len(updated_cms_records)}")
+    new_entities, extract_addresses = process_nppes(nppes_data, cms_data)
     print(f"New Entities: {len(new_entities)}")
-    save_to_cms_file(updated_cms_records, new_entities, extract_addresses)
+    save_to_cms_file(new_entities, extract_addresses)
     print("Processing complete.")
 
 if __name__ == "__main__":

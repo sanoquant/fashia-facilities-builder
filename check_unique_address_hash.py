@@ -23,6 +23,11 @@ for hash_value in duplicated_hashes['address_hash']:
             FROM entities e
             JOIN addresses a ON e.ccn = a.ccn
             WHERE a.address_hash = '{hash_value}'
+        ) OR npi IN (
+            SELECT e.npi
+            FROM entities e
+            JOIN addresses a ON e.npi = a.npi
+            WHERE a.address_hash = '{hash_value}'
         );
     """
     cursor.execute(update_query)
