@@ -1,17 +1,20 @@
 import os
 import pandas as pd
 import hashlib
+import math
 print("Environment setup complete!")
 
 
 # List of files
 files = [
-    "DFC_FACILITY.csv",
-         "HH_Provider_Oct2024.csv",
-         "Hospice_General-Information_Aug2024.csv",
-         "Hospital_General_Information.csv",
-         "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv",
-         "Long-Term_Care_Hospital-General_Information_Sep2024.csv", "NH_ProviderInfo_Oct2024.csv"]
+    "DFC_FACILITY.csv", # dialysis facility dataset
+    "HH_Provider_Oct2024.csv", # home health agency dataset
+    "Hospice_General-Information_Aug2024.csv", # hospice dataset
+    "Hospital_General_Information.csv", # hospital general information dataset
+    "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", # inpatient rehabilitation facility dataset
+    "Long-Term_Care_Hospital-General_Information_Sep2024.csv", # long term care hospital dataset
+    "NH_ProviderInfo_Oct2024.csv" # nursing home dataset
+]
 
 
 # Create the folder for filtered files if it doesn't exist
@@ -142,13 +145,6 @@ def save_entities_to_csv(entities, output_file):
     except Exception as e:
         print(f"Error saving entities to CSV: {e}")
 
-# Function to generate a numeric primary key
-def generate_numeric_key(ccn):
-    if not str(ccn).isnumeric():
-        # Converts CCN into a numeric hash
-        return int(hashlib.md5(str(ccn).encode()).hexdigest(), 16) % (10**9)  # Limits to 9 digits
-    return int(ccn)
-
 # Main function to process a file based on the rules dictionary
 def process_file(file_name, data):
     rules = file_rules_mapping.get(file_name)
@@ -157,18 +153,39 @@ def process_file(file_name, data):
         return pd.DataFrame()
 
     entities = []
+    def get_base_key(row):
+        """Determine the base key for primary key generation."""
+        if "Facility ID" in data.columns:
+            return row.get("Facility ID")
+        elif "CMS Certification Number (CCN)" in data.columns:
+            return row.get("CMS Certification Number (CCN)")
+        return None
+    
+    # Function to generate a numeric primary key
+    def generate_unique_key(base_key, subrule_index=None):
+        """Generate a unique primary key based on a base key and subrule index."""
+        if subrule_index is not None:
+            unique_key = f"{base_key}_{subrule_index}"
+        else:
+            unique_key = f"{base_key}"
+        return int(hashlib.md5(unique_key.encode()).hexdigest(), 16) % (10**9)
 
     # Process general rules
     if "Type" in rules and "Subtype" in rules and "nucc_code" in rules:
         data["Type"] = rules["Type"]
         data["Subtype"] = rules["Subtype"]
         data["nucc_code"] = rules["nucc_code"]
+        # Generate unique primary keys for each record
+        data["PrimaryKey"] = data.apply(
+            lambda row: generate_unique_key(get_base_key(row)),
+            axis=1
+        )
         entities.extend(data.to_dict(orient="records"))
 
     # Process subrules
     if "SubRules" in rules:
         if rules.get("typeSubRules") == "ifCnnIsNumber":
-            for condition, subrule in rules["SubRules"].items():
+            for subrule_index, (condition, subrule) in enumerate(rules["SubRules"].items(), start=1):
                 filtered_data = data[
                     data["CMS Certification Number (CCN)"].str.isnumeric() if condition == "true" else
                     ~data["CMS Certification Number (CCN)"].str.isnumeric()
@@ -179,10 +196,15 @@ def process_file(file_name, data):
                     filtered_data.loc[:, "Type"] = subrule["Type"]
                     filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
                     filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
+                    # Generate unique primary keys for subrule records
+                    filtered_data["PrimaryKey"] = filtered_data.apply(
+                        lambda row: generate_unique_key(get_base_key(row), subrule_index=subrule_index),
+                        axis=1
+                    )
                     entities.extend(filtered_data.to_dict(orient="records"))
 
         elif rules.get("typeSubRules") == "duplicateByActiveFlag":
-            for column, subrule in rules["SubRules"].items():
+            for subrule_index, (column, subrule) in enumerate(rules["SubRules"].items(), start=1):
                 if column in data.columns:
                     filtered_data = data[data[column] == "Yes"].copy()
                     print(f"Filtered {len(filtered_data)} rows for column '{column}' in 'duplicateByActiveFlag'.")
@@ -191,23 +213,36 @@ def process_file(file_name, data):
                         filtered_data.loc[:, "Type"] = subrule["Type"]
                         filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
                         filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
+                        # Generate unique primary keys for subrule records
+                        filtered_data["PrimaryKey"] = filtered_data.apply(
+                            lambda row: generate_unique_key(get_base_key(row), subrule_index=subrule_index),
+                            axis=1
+                        )
                         entities.extend(filtered_data.to_dict(orient="records"))
                 else:
                     print(f"Column '{column}' not found in {file_name}. Skipping subrule.")
 
         elif rules.get("typeSubRules") == "checkByFieldValue":
             if "Hospital Type" in data.columns:
-                for field_value, subrule in rules["SubRules"].items():
+                for subrule_index, (field_value, subrule) in enumerate(rules["SubRules"].items(), start=1):
                     if isinstance(subrule, list):  # Handle lists of subrules
                         filtered_data = data[data["Hospital Type"] == field_value].copy()
                         print(f"Filtered {len(filtered_data)} rows for field value '{field_value}' in 'checkByFieldValue'.")
 
                         if not filtered_data.empty:
-                            for rule in subrule:
+                            for rule_index, rule in enumerate(subrule, start=1):
                                 entity_data = filtered_data.copy()
                                 entity_data.loc[:, "Type"] = rule["Type"]
                                 entity_data.loc[:, "Subtype"] = rule["Subtype"]
                                 entity_data.loc[:, "nucc_code"] = rule["nucc_code"]
+                                # Generate unique primary keys for each subrule and subrule index
+                                entity_data["PrimaryKey"] = entity_data.apply(
+                                    lambda row: generate_unique_key(
+                                        get_base_key(row), 
+                                        subrule_index=subrule_index * 10 + rule_index  # Differentiate between subrules
+                                    ),
+                                    axis=1
+                                )
                                 entities.extend(entity_data.to_dict(orient="records"))
                     else:
                         filtered_data = data[data["Hospital Type"] == field_value].copy()
@@ -217,6 +252,11 @@ def process_file(file_name, data):
                             filtered_data.loc[:, "Type"] = subrule["Type"]
                             filtered_data.loc[:, "Subtype"] = subrule["Subtype"]
                             filtered_data.loc[:, "nucc_code"] = subrule["nucc_code"]
+                            # Generate unique primary keys for subrule records
+                            filtered_data["PrimaryKey"] = filtered_data.apply(
+                                lambda row: generate_unique_key(get_base_key(row), subrule_index=subrule_index),
+                                axis=1
+                            )
                             entities.extend(filtered_data.to_dict(orient="records"))
             else:
                 print(f"'Hospital Type' column not found in {file_name}. Skipping checkByFieldValue subrules.")
@@ -276,17 +316,21 @@ def extract_addresses(data, ccn_column="CMS Certification Number (CCN)"):
         
         # Handle concatenation for Address Line 1 and Address Line 2
         if address_col == "Address Line 1":
-            address_line_1 = row["Address Line 1"]
-            address_line_2 = row.get("Address Line 2", "")  # Default to empty string if not present
-            full_address = f"{address_line_1} {address_line_2}".strip(", ")  # Concatenate, remove trailing commas
+            address_line_2 = row.get("Address Line 2", "")
+
+            if address_line_2 and not (isinstance(address_line_2, float) and math.isnan(address_line_2)):
+                full_address = f"{row['Address Line 1']} {address_line_2}".strip(", ")
+            else:
+                full_address = row["Address Line 1"]
+
         else:
             full_address = row[address_col]
-        
+
         city = row[city_col]
         state = row[state_col]
         zip_code = row[zip_col]
         ccn = row.get(ccn_column, None)
-        
+
         # Generate address ID
         address_id = generate_address_id(ccn, full_address, city, state, zip_code)
         
@@ -329,7 +373,11 @@ initialize_state_mapping(states_file)
 for file in files:
     try:
         # Load the current file
-        df = pd.read_csv("./datasets/"+file)
+        if "Hospital_General_Information.csv" == file:
+            df = pd.read_csv("./datasets/"+file, dtype={"Facility ID": str})
+        else:
+            df = pd.read_csv("./datasets/"+file, dtype={"CMS Certification Number (CCN)": str})
+        
         print(f"Loaded {file} successfully with {len(df)} rows.")
         print(df.head())
         
@@ -351,18 +399,15 @@ for file in files:
             
             
             if "Facility ID" in filtered_data.columns:
-                # Generate the numeric primary key from Facility ID
-                filtered_data["PrimaryKey"] = filtered_data["Facility ID"].apply(generate_numeric_key)
+                ccn_column = "Facility ID"
             else:
-                # Generate the numeric primary key from CMS Certification Number (CCN)
-                filtered_data["PrimaryKey"] = filtered_data["CMS Certification Number (CCN)"].apply(generate_numeric_key)
+                ccn_column = "CMS Certification Number (CCN)"
+            
+            # Extract addresses and update state_mapping
+            extract_addresses(filtered_data, ccn_column)
             
             # Process the CMS file data based on the rules dictionary for the file
             processed_data = process_file(file, filtered_data)
-            
-            
-            # Extract addresses and update state_mapping
-            extract_addresses(processed_data)
             
             # map the required columns
             processed_data = map_columns(processed_data)
