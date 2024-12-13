@@ -35,7 +35,7 @@ block "Process CMS Files" {
 
         block "Hospice Facilities" {
             SET Type = "Agency";
-            SET Subtype = "Community Based Hospice Care";
+            SET Subtype = "Community Based Hospice Care Agency;
             SET NUCC = "251G00000X";
             CALL Insert Facility;
         }
@@ -58,25 +58,45 @@ block "Process CMS Files" {
             SET Type = "Agency";
             SET Subtype = "Home Health Agency (All)";
             SET NUCC = "251E00000X";
+           Call Insert Facility;
+            
             if (Offers Nursing Care Services = Yes) {
-                SET Subtype = "Home Health Agency (Nursing Care Services)";
-                CALL Insert Facility;
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Nursing Care Services)";
+              CALL Insert Facility;
             }
+            
             if (Offers Physical Therapy Services = Yes) {
-                SET Subtype = "Home Health Agency (Physical Therapy Services)";
-                CALL Insert Facility;
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Physical Therapy)";
+              CALL Insert Facility;
             }
+            
             if (Offers Occupational Therapy Services = Yes) {
-                SET Subtype = "Home Health Agency (Occupational Therapy Services)";
-                CALL Insert Facility;
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Occupational Therapy)";
+              CALL Insert Facility;
             }
             if (Offers Speech Pathology Services = Yes) {
-                SET Subtype = "Home Health Agency (Speech Pathology Services)";
-                CALL Insert Facility;
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Speech Pathology)";
+              CALL Insert Facility;
+            }
+            if (Offers Medical Social Services = Yes) {
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Medical Social Services)";
+              CALL Insert Facility;
             }
             if (Offers Home Health Aide Services = Yes) {
-                SET Subtype = "Home Health Agency (Home Health Aide Services)";
-                CALL Insert Facility;
+              SET NUCC = "N/A";
+              SET Type = "Agency";
+              SET Subtype = "Home Health Agency (Home Health Aide Services)";
+              CALL Insert Facility;
             }
         }
 
@@ -84,25 +104,25 @@ block "Process CMS Files" {
             switch (Hospital Type) {
                 case "Acute Care - Veterans Administration":
                     SET Type = "Hospital";
-                    SET Subtype = "Acute Care - Veterans Administration";
+                    SET Subtype = "Veterans Affairs (VA) Hospital";
                     SET NUCC = "N/A";
                     break;
 
                 case "Acute Care Hospitals":
                     SET Type = "Hospital";
-                    SET Subtype = "Acute Care";
+                    SET Subtype = "General Acute Care Hospital;
                     SET NUCC = "282N00000X";
                     break;
 
                 case "Childrens":
                     SET Type = "Hospital";
-                    SET Subtype = "Pediatric";
+                    SET Subtype = "Children's Hospital";
                     SET NUCC = "282NC2000X";
                     break;
 
                 case "Critical Access Hospitals":
                     SET Type = "Hospital";
-                    SET Subtype = "Critical Access";
+                    SET Subtype = "Critical Access Hospital";
                     SET NUCC = "282NC0060X";
                     break;
 
@@ -120,7 +140,7 @@ block "Process CMS Files" {
 
                 case "Psychiatric":
                     SET Type = "Hospital";
-                    SET Subtype = "Psychiatric";
+                    SET Subtype = "Psychiatric Hospital";
                     SET NUCC = "283Q00000X";
                     break;
 
@@ -128,54 +148,53 @@ block "Process CMS Files" {
                     SET Type = NULL;
                     SET Subtype = NULL;
                     SET NUCC = NULL;
+                    CALL Insert Facility;
             }
-            CALL Insert Facility;
         }
     }
 }
 
 block "Process NPPES File" {
-    // Step 1: Load NPPES Data
-    TRAVERSE NPPES dataset for providers and facilities;
+    // Step 1: Traverse NPPES dataset for facilities
+    TRAVERSE NPPES dataset row by row;
 
-    // Reconcile Providers
-    for (each provider in NPPES) {
-        if (provider exists in Providers Table) {
-            SKIP;
-        } else {
-          
-          
-            if (is nucc code in list)
-            {
-            get type and sub type
-            INSERT provider into Providers Table;
-            }else
-            {
-              //to support clinical location facities
-              insert with nucc_code N/A and
-              facility type clinical location;
+    // Step 2: Process each facility in the NPPES dataset
+    for (each Facility in NPPES) {
+    // Skip duplicate taxonomies before processing
+    skipDuplicateTaxonomies(facility);
+
+    // Check if the facility has multiple taxonomies and get unique codes
+    for (each taxonomy in the facility) {
+        if (Is the Taxonomy Code in the CMS NUCC Codes?) {
+            if (Is it Hospice (251G00000X)?) {
+                // 1) Provider Organization Name (Legal Business Name)
+                // 2) Parent Organization LBN
+                // 3) Other Provider Organization Name
+                if (Compare exactly between CMS and NPPES) {
+                    keep cms facility;
+                } else {
+                    set NUCC = "251G00000X";
+                    set type = "Agency";
+                    set subtype = "Community Based Hospice Care Agency";
+                    skip facility;
+                    CALL Insert Facility;
+                }
+            }else {
+              skip facility;
             }
-        }
-
-        // Reconcile Addresses
-        if (CMS addresses exist for provider) {
-            SKIP NPPES addresses;
+        } else if (Is the NUCC code in the NPPES NUCC Codes list?) {
+            // Get type, subtype and NUCC code
+            Get type and subtype and NUCC code;
+            CALL Insert Facility;
         } else {
-            INSERT NPPES addresses;
-            MARK primary NPPES address as primary practice address;
+            // For supporting clinical location facilities
+            Set NUCC = N/A;
+            Set type = "clinical location";
+            SET Subtype = NULL;
+            CALL Insert Facility;
         }
-
-        // Reconcile Specialties
-        PROCESS specialties using CMS Temporary Specialties Table and "Student" logic;
-
-        // Update Employer Relationships
-        MATCH provider addresses to employer entity addresses;
-        CREATE employment relationship if match exists;
-
-        // Create Facility Affiliation
-        MATCH provider practice addresses with facility addresses;
-        INSERT Provider-Facility Relationship for valid matches;
     }
+}
 }
 
 block "Final Coordinates Calculation" {
@@ -190,15 +209,16 @@ block "Final Coordinates Calculation" {
 block "Mark Faciliies as unique to address"
 {
   Search for addresses with the same hash and mark facilities as not unique;
-  
 }
 end;
 
 function  "Insert Facility" {
     // Common Function for Inserting Facilities
-    Generate unique primary key for Facility;
+    Generate unique primary key for Facility; 
+    //use a unique hash, for cms use the rules, questions and for nppes use the nucc code
     Save facility to Facility Table;
+    generate address hash;
+    // use the 5 digits of the code
+    generate address primary key;
     Save address to Address Table;
-    LINK facility to providers and employers;
 }
-

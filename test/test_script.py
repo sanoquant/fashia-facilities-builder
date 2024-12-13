@@ -17,33 +17,33 @@ from facilities_importer import process_file, generate_numeric_key, extract_addr
 @pytest.fixture
 def sample_datasets():
     return {
-        "DFC_FACILITY.csv": pd.DataFrame({
+        "dialysis_facility_dataset.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["12345", "67890"],
             "Facility Name": ["Dialysis Center A", "Dialysis Center B"]
         }),
-        "HH_Provider_Oct2024.csv": pd.DataFrame({
+        "home_health_agency_dataset.csv": pd.DataFrame({
             "Offers Nursing Care Services": ["Yes", "No", "No", "Yes"],
             "Offers Physical Therapy Services": ["No", "Yes", "No", "Yes"],
             "Provider Name": ["Agency A", "Agency B", "Agency C", "Agency D"]
         }),
-        "Hospice_General-Information_Aug2024.csv": pd.DataFrame({
+        "hospice_dataset.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["00001", "00002"],
             "Facility Name": ["Hospice A", "Hospice B"]
         }),
-        "Hospital_General_Information.csv": pd.DataFrame({
+        "hospital_general_information_dataset.csv": pd.DataFrame({
             "Facility ID": ["001", "002"],
             "Facility Name": ["Hospital A", "Hospital B"],
             "Hospital Type": ["Acute Care Hospitals", "Childrens"]
         }),
-        "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv": pd.DataFrame({
+        "inpatient_rehabilitation_facility_dataset.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["12345", "ABCDE"],
             "Provider Name": ["Rehab Facility A", "Rehab Facility B"]
         }),
-        "Long-Term_Care_Hospital-General_Information_Sep2024.csv": pd.DataFrame({
+        "long_term_care_hospital_dataset.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["67890", "54321"],
             "Provider Name": ["Long Term Care A", "Long Term Care B"]
         }),
-        "NH_ProviderInfo_Oct2024.csv": pd.DataFrame({
+        "nursing_home_dataset.csv": pd.DataFrame({
             "CMS Certification Number (CCN)": ["11111", "22222"],
             "Provider Name": ["Nursing Home A", "Nursing Home B"]
         })
@@ -51,11 +51,11 @@ def sample_datasets():
 
 # Test cases for general rules
 @pytest.mark.parametrize("file_name", [
-    "DFC_FACILITY.csv",
-    "HH_Provider_Oct2024.csv",
-    "Hospice_General-Information_Aug2024.csv",
-    "NH_ProviderInfo_Oct2024.csv",
-    "Long-Term_Care_Hospital-General_Information_Sep2024.csv"
+    "dialysis_facility_dataset.csv",
+    "home_health_agency_dataset.csv",
+    "hospice_dataset.csv",
+    "nursing_home_dataset.csv",
+    "long_term_care_hospital_dataset.csv"
 ])
 def test_general_rules(file_name, sample_datasets):
     data = sample_datasets[file_name]
@@ -69,7 +69,7 @@ def test_general_rules(file_name, sample_datasets):
 
 # Test case for "ifCnnIsNumber" subrules
 def test_if_cnn_is_number(sample_datasets):
-    file_name = "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv"
+    file_name = "inpatient_rehabilitation_facility_dataset.csv"
     data = sample_datasets[file_name]
     processed_data = process_file(file_name, data)
 
@@ -80,7 +80,7 @@ def test_if_cnn_is_number(sample_datasets):
 
 # Test case for "duplicateByActiveFlag" subrules
 def test_duplicate_by_active_flag(sample_datasets):
-    file_name = "HH_Provider_Oct2024.csv"
+    file_name = "home_health_agency_dataset.csv"
     data = sample_datasets[file_name]
     processed_data = process_file(file_name, data)
 
@@ -90,7 +90,7 @@ def test_duplicate_by_active_flag(sample_datasets):
 
 # Test case for "checkByFieldValue" subrules
 def test_check_by_field_value(sample_datasets):
-    file_name = "Hospital_General_Information.csv"
+    file_name = "hospital_general_information_dataset.csv"
     data = sample_datasets[file_name]
     processed_data = process_file(file_name, data)
 

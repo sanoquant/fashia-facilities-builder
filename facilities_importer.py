@@ -7,13 +7,13 @@ print("Environment setup complete!")
 
 # List of files
 files = [
-    "DFC_FACILITY.csv", # dialysis facility dataset
-    "HH_Provider_Oct2024.csv", # home health agency dataset
-    "Hospice_General-Information_Aug2024.csv", # hospice dataset
-    "Hospital_General_Information.csv", # hospital general information dataset
-    "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv", # inpatient rehabilitation facility dataset
-    "Long-Term_Care_Hospital-General_Information_Sep2024.csv", # long term care hospital dataset
-    "NH_ProviderInfo_Oct2024.csv" # nursing home dataset
+    "dialysis_facility_dataset.csv", # dialysis facility dataset
+    "home_health_agency_dataset.csv", # home health agency dataset
+    "hospice_dataset.csv", # hospice dataset
+    "hospital_general_information_dataset.csv", # hospital general information dataset
+    "inpatient_rehabilitation_facility_dataset.csv", # inpatient rehabilitation facility dataset
+    "long_term_care_hospital_dataset.csv", # long term care hospital dataset
+    "nursing_home_dataset.csv" # nursing home dataset
 ]
 
 
@@ -32,18 +32,18 @@ states_file = "datasets/output/states.csv"
 
 # Dictionary of rules based on the file name
 file_rules_mapping = {
-    "DFC_FACILITY.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "nucc_code": "261QE0700X"},
-    "NH_ProviderInfo_Oct2024.csv": {"Type": "Nursing & Assisted Living", "Subtype": "Skilled Nursing Facility", "nucc_code": "314000000X"},
-    "Hospice_General-Information_Aug2024.csv": {"Type": "Agency", "Subtype": "Community Based Hospice Care Agency", "nucc_code": "251G00000X"},
-    "Inpatient_Rehabilitation_Facility-General_Information_Sep2024.csv": {
+    "dialysis_facility_dataset.csv": {"Type": "Clinic", "Subtype": "Dialysis Clinic", "nucc_code": "261QE0700X"},
+    "nursing_home_dataset.csv": {"Type": "Nursing & Assisted Living", "Subtype": "Skilled Nursing Facility", "nucc_code": "314000000X"},
+    "hospice_dataset.csv-Information_Aug2024.csv": {"Type": "Agency", "Subtype": "Community Based Hospice Care Agency", "nucc_code": "251G00000X"},
+    "inpatient_rehabilitation_facility_dataset.csv": {
         "SubRules": {
             "true": {"Type": "Hospital", "Subtype": "Rehabilitation Hospital", "nucc_code": "283X00000X"},
             "false": {"Type": "Hospital Unit", "Subtype": "Rehabilitation Hospital Unit", "nucc_code": "273Y00000X"},
             },
         "typeSubRules": "ifCnnIsNumber"
         },
-    "Long-Term_Care_Hospital-General_Information_Sep2024.csv": {"Type": "Hospital", "Subtype": "Long Term Care Hospital", "nucc_code": "282E00000X"},
-    "HH_Provider_Oct2024.csv": {
+    "long_term_care_hospital_dataset.csv": {"Type": "Hospital", "Subtype": "Long Term Care Hospital", "nucc_code": "282E00000X"},
+    "home_health_agency_dataset.csv": {
         "Type": "Agency",
         "Subtype": "Home Health Agency (All)",
         "nucc_code": "251E00000X",
@@ -57,7 +57,7 @@ file_rules_mapping = {
         },
         "typeSubRules": "duplicateByActiveFlag"
     },
-    "Hospital_General_Information.csv": 
+    "hospital_general_information_dataset.csv": 
         {
             "SubRules": { 
                 "Acute Care - Veterans Administration": {"Type": "Hospital", "Subtype": "Veterans Affairs (VA) Hospital", "nucc_code": "N/A"},
@@ -373,7 +373,7 @@ initialize_state_mapping(states_file)
 for file in files:
     try:
         # Load the current file
-        if "Hospital_General_Information.csv" == file:
+        if "hospital_general_information_dataset.csv" == file:
             df = pd.read_csv("./datasets/"+file, dtype={"Facility ID": str})
         else:
             df = pd.read_csv("./datasets/"+file, dtype={"CMS Certification Number (CCN)": str})

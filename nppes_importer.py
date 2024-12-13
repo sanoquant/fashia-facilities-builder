@@ -3,7 +3,7 @@ import pandas as pd
 import hashlib
 
 # File paths
-nppes_file = "./datasets/filtered/nppes_filtered_data_1.csv"  # Input NPPES dataset
+nppes_file = "./datasets/filtered/nppes_filtered_data.csv"  # Input NPPES dataset
 cms_file = "./datasets/output/entities.csv"      # Input CMS dataset
 # Output files for the Addresses and States tables
 addresses_file = "datasets/output/addresses.csv"

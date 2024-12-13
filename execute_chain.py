@@ -21,7 +21,6 @@ def execute_file(file_path):
 def main():
     # List of files to be executed in a chain
     files_to_execute = [
-        "filter_nppes_data.py",
         "facilities_importer.py",
         "nppes_importer.py",
         "setup_database.py",
