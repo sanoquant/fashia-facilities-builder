@@ -1,0 +1,171 @@
+NUCC Code,Fashia - Facility Type,Fashia - Facility Subtype
+251B00000X,Agency,Case Management Agency
+251S00000X,Agency,Community / Behavioral Health Agency
+251C00000X,Agency,Developmentally Disabled Services Day Training Agency
+252Y00000X,Agency,Early Intervention Provider Agency
+253J00000X,Agency,Foster Care Agency
+251F00000X,Agency,Home Infusion Agency
+253Z00000X,Agency,In Home Supportive Care Agency
+251300000X,Agency,Local Education Agency (LEA)
+251J00000X,Agency,Nursing Care Agency
+251T00000X,Agency,PACE Provider Organization
+251K00000X,Agency,Public Health or Welfare Agency
+251X00000X,Agency,Supports Brokerage Agency
+251V00000X,Agency,Voluntary or Charitable Agency
+261Q00000X,Clinic,Clinic
+261QM0855X,Clinic,Adolescent and Children Mental Health Clinic
+261QA0600X,Clinic,Adult Day Care Clinic
+261QM0850X,Clinic,Adult Mental Health Clinic
+261QA0005X,Clinic,Ambulatory Family Planning Facility
+261QA0006X,Clinic,Ambulatory Fertility Facility
+261QA1903X,Clinic,Ambulatory Surgical Clinic
+261QA0900X,Clinic,Amputee Clinic
+261QA3000X,Clinic,Augmentative Communication Clinic
+261QB0400X,Clinic,Birthing Clinic
+261QC1500X,Clinic,Community Health Clinic
+261QC1800X,Clinic,Corporate Health Clinic
+261QC0050X,Clinic,Critical Access Hospital Clinic
+261QD0000X,Clinic,Dental Clinic
+261QD1600X,Clinic,Developmental Disabilities Clinic
+261QE0002X,Clinic,Emergency Care Clinic
+261QE0800X,Clinic,Endoscopy Clinic
+261QF0050X,Clinic,Non-Surgical Family Planning Clinic
+261QF0400X,Clinic,Federally Qualified Health Center (FQHC)
+261QG0250X,Clinic,Genetics Clinic
+261QH0100X,Clinic,Health Service Clinic
+261QH0700X,Clinic,Hearing and Speech Clinic
+261QI0500X,Clinic,Infusion Therapy Clinic
+261QL0400X,Clinic,Lithotripsy Clinic
+261QM1200X,Clinic,Magnetic Resonance Imaging (MRI) Clinic
+261QM2500X,Clinic,Medical Specialty Clinic
+261QM3000X,Clinic,Medically Fragile Infants and Children Day Care
+261QM0801X,Clinic,Mental Health Clinic / Community Mental Health Center
+261QM2800X,Clinic,Methadone Clinic
+261QM1000X,Clinic,Migrant Health Clinic
+261QM1103X,Clinic,Military Ambulatory Procedure Visits Operational (Transportable) Clinic
+261QM1101X,Clinic,Military and U.S. Coast Guard Ambulatory Procedure Clinic
+261QM1102X,Clinic,Military Outpatient Operational (Transportable) Component Clinic
+261QM1100X,Clinic,Military / U.S. Coast Guard Outpatient Clinic
+261QM1300X,Clinic,Multi-Specialty Clinic
+261QX0100X,Clinic,Occupational Medicine Clinic
+261QX0200X,Clinic,Oncology Clinic
+261QX0203X,Clinic,Radiation Oncology Clinic
+261QS0132X,Clinic,Ophthalmologic Surgery Clinic
+261QS0112X,Clinic,Oral and Maxillofacial Surgery Clinic
+261QP3300X,Clinic,Pain Clinic
+261QP2000X,Clinic,Physical Therapy Clinic
+261QP1100X,Clinic,Podiatric Clinic
+261QP2300X,Clinic,Primary Care Clinic
+261QP2400X,Clinic,Prison Health Clinic
+261QP0904X,Clinic,Federal Public Health Clinic
+261QP0905X,Clinic,State or Local Public Health Clinic
+261QR0200X,Clinic,Radiology Clinic
+261QR0206X,Clinic,Mammography Clinic
+261QR0208X,Clinic,Mobile Radiology Clinic
+261QR0207X,Clinic,Mobile Mammography Clinic
+261QR0800X,Clinic,Recovery Care Clinic
+261QR0400X,Clinic,Rehabilitation Clinic
+261QR0404X,Clinic,Cardiac Rehabilitation Clinic
+261QR0401X,Clinic,Comprehensive Outpatient Rehabilitation Facility (CORF)
+261QR0405X,Clinic,Substance Use Disorder Rehabilitation Clinic
+261QR1100X,Clinic,Research Clinic
+261QR1300X,Clinic,Rural Health Clinic
+261QS1200X,Clinic,Sleep Disorder Diagnostic Clinic
+261QS1000X,Clinic,Student Health Clinic
+261QU0200X,Clinic,Urgent Care Clinic
+261QV0200X,Clinic,Veterans Affairs (VA) Clinic
+273100000X,Hospital Unit,Epilepsy Hospital Unit
+275N00000X,Hospital Unit,Medicare Defined Swing Bed Hospital Unit
+273R00000X,Hospital Unit,Psychiatric Hospital Unit
+276400000X,Hospital Unit,Substance Use Disorder Rehabilitation Hospital Unit
+281P00000X,Hospital,Chronic Disease Hospital
+281PC2000X,Hospital,Children's Chronic Disease Hospital
+282NR1301X,Hospital,Rural Acute Care Hospital
+282NW0100X,Hospital,Women's Hospital
+2865X1600X,Hospital,Operational (Transportable) Military General Acute Care Hospital
+283XC2000X,Hospital,Children's Rehabilitation Hospital
+282J00000X,Hospital,Religious Nonmedical Health Care Institution
+284300000X,Hospital,Specialty Hospital
+291U00000X,Laboratory,Clinical Medical Laboratory
+292200000X,Laboratory,Dental Laboratory
+291900000X,Laboratory,Military Clinical Medical Laboratory
+293D00000X,Laboratory,Physiological Laboratory
+302F00000X,Managed Care Organization,Exclusive Provider Organization
+302R00000X,Managed Care Organization,Health Maintenance Organization
+305S00000X,Managed Care Organization,Point of Service
+305R00000X,Managed Care Organization,Preferred Provider Organization
+311500000X,Nursing & Assisted Living,Alzheimer Center (Dementia Center)
+310400000X,Nursing & Assisted Living,Assisted Living Facility
+3104A0630X,Nursing & Assisted Living,Assisted Living Facility (Behavioral Disturbances)
+3104A0625X,Nursing & Assisted Living,Assisted Living Facility (Mental Illness)
+311Z00000X,Nursing & Assisted Living,Custodial Care Facility
+311ZA0620X,Nursing & Assisted Living,Adult Care Home Facility
+315D00000X,Nursing & Assisted Living,Inpatient Hospice
+315P00000X,Nursing & Assisted Living,Intellectual Disabilities Intermediate Care Facility
+310500000X,Nursing & Assisted Living,Mental Illness Intermediate Care Facility
+313M00000X,Nursing & Assisted Living,Nursing & Intermediate Care Facility
+3140N1450X,Nursing & Assisted Living,Pediatric Skilled Nursing Facility
+177F00000X,Other Service Providers,Lodging Provider
+174200000X,Other Service Providers,Meals Provider
+320800000X,Residential Treatment Facility,Mental Illness Community Based Residential Treatment Facility
+320900000X,Residential Treatment Facility,Intellectual and/or Developmental Disabilities Community Based Residential Treatment Facility
+323P00000X,Residential Treatment Facility,Psychiatric Residential Treatment Facility
+322D00000X,Residential Treatment Facility,Emotionally Disturbed Children's' Residential Treatment Facility
+320600000X,Residential Treatment Facility,Intellectual and/or Developmental Disabilities Residential Treatment Facility
+320700000X,Residential Treatment Facility,Physical Disabilities Residential Treatment Facility
+324500000X,Residential Treatment Facility,Substance Abuse Rehabilitation Facility
+3245S0500X,Residential Treatment Facility,Children's Substance Abuse Rehabilitation Facility
+385H00000X,Respite Care Facility,Respite Care Facility
+385HR2050X,Respite Care Facility,Respite Care Camp
+385HR2055X,Respite Care Facility,Children's Mental Illness Respite Care Facility
+385HR2060X,Respite Care Facility,Children's Intellectual and/or Developmental Disabilities Respite Care Facility
+385HR2065X,Respite Care Facility,Children's Physical Disabilities Respite Care Facility
+331L00000X,Supplier,Blood Bank
+332B00000X,Supplier,Durable Medical Equipment & Medical Supplies
+332BC3200X,Supplier,Customized Equipment (DME)
+332BD1200X,Supplier,Dialysis Equipment & Supplies (DME)
+332BN1400X,Supplier,Nursing Facility Supplies (DME)
+332BX2000X,Supplier,Oxygen Equipment & Supplies (DME)
+332BP3500X,Supplier,Parenteral & Enteral Nutrition Supplies (DME)
+333300000X,Supplier,Emergency Response System Company
+332G00000X,Supplier,Eye Bank
+332H00000X,Supplier,Eyewear Supplier
+332S00000X,Supplier,Hearing Aid Equipment Supplier
+332U00000X,Supplier,Home Delivered Meals Supplier
+335G00000X,Supplier,Medical Foods Supplier
+332900000X,Supplier,Non-Pharmacy Dispensing Site
+335U00000X,Supplier,Organ Procurement Organization
+333600000X,Pharmacy,General Pharmacy
+332000000X,Pharmacy,Military / U.S. Coast Guard Pharmacy
+332800000X,Pharmacy,Indian Health Service / Tribal / Urban Indian Health (I/T/U) Pharmacy
+3336C0002X,Pharmacy,Clinic Pharmacy
+3336C0003X,Pharmacy,Community / Retail Pharmacy
+3336C0004X,Pharmacy,Compounding Pharmacy
+3336H0001X,Pharmacy,Home Infusion Therapy Pharmacy
+3336I0012X,Pharmacy,Institutional Pharmacy
+3336L0003X,Pharmacy,Long Term Care Pharmacy
+3336M0002X,Pharmacy,Mail Order Pharmacy
+3336M0003X,Pharmacy,Managed Care Organization Pharmacy
+3336N0007X,Pharmacy,Nuclear Pharmacy
+3336S0011X,Pharmacy,Specialty Pharmacy
+332100000X,Pharmacy,Veterans Affairs (VA) Pharmacy
+335V00000X,Supplier,Portable X-ray and/or Other Portable Diagnostic Imaging Supplier
+335E00000X,Supplier,Prosthetic / Orthotic Supplier
+344800000X,Transportation Service,Air Carrier
+341600000X,Transportation Service,Ambulance
+3416A0800X,Transportation Service,Air Ambulance
+3416L0300X,Transportation Service,Land Ambulance
+3416S0300X,Transportation Service,Water Ambulance
+347B00000X,Transportation Service,Bus
+341800000X,Transportation Service,Military or U.S. Coast Guard Transport
+3418M1120X,Transportation Service,Military or U.S. Coast Guard Air Transport Ambulance
+3418M1110X,Transportation Service,Military or U.S. Coast Guard Ground Transport Ambulance
+3418M1130X,Transportation Service,Military or U.S. Coast Guard Water Transport Ambulance
+343900000X,Transportation Service,Non-emergency Medical Transport (VAN)
+347C00000X,Transportation Service,Private Vehicle
+343800000X,Transportation Service,Secured Medical Transport (VAN)
+344600000X,Transportation Service,Taxi
+347D00000X,Transportation Service,Train
+347E00000X,Transportation Service,Transportation Broker
+342000000X,Transportation Service,Transportation Network Company
+251G00000X,Agency,Community Based Hospice Care Agency
