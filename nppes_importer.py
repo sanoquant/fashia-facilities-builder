@@ -5,7 +5,6 @@ import hashlib
 # File paths
 nppes_file = "./datasets/filtered/nppes_filtered_data_1.csv"  # Input NPPES dataset
 cms_file = "./datasets/output/entities.csv"      # Input CMS dataset
-output_new_entities = "new_entities.csv"    # Output for new entities
 # Output files for the Addresses and States tables
 addresses_file = "datasets/output/addresses.csv"
 states_file = "datasets/output/states.csv"
@@ -58,10 +57,6 @@ required_columns = {
 column_mapping = {
     "name": ["Provider Organization Name (Legal Business Name)", "Parent Organization LBN", "Provider Other Organization Name"],
     "npi": ["NPI"],
-    #"Address": ["Provider First Line Business Practice Location Address", "Provider Second Line Business Practice Location Address"],
-    #"City": ["Provider Business Practice Location Address City Name"],  # No alternatives
-    #"State": ["Provider Business Practice Location Address State Name"],  # No alternatives
-    #"ZipCode": ["Provider Business Practice Location Address Postal Code"]  # No alternatives
 }
 # Column mapping for alternate names to address
 column_mapping_address = {
@@ -98,13 +93,10 @@ def map_row_to_entity(row, taxonomy_field, taxonomy_mapping):
         entity["nucc_code"] = taxonomy_code
         entity["Type"] = details["type"]
         entity["Subtype"] = details["subtype"]
-        print(entity)
     else:
-        print(taxonomy_code)
         entity["nucc_code"] = taxonomy_code
         entity["Type"] = "Clinical Location"
         entity["Subtype"] = None
-        print(entity)
     # Add derived fields or logic as needed
     entity["entity_id"] = generate_numeric_key(row["NPI"], taxonomy_field)
     # Extract addresses and update state_mapping
@@ -155,7 +147,6 @@ def process_nppes(nppes_data, cms_data, ):
     taxonomy_mapping = taxonomy_data.set_index("NUCC Code").T.to_dict()
     taxonomy_mapping = {key: {"type": value["Fashia - Facility Type"], "subtype": value["Fashia - Facility Subtype"]}
                         for key, value in taxonomy_mapping.items()}
-    print(taxonomy_mapping)
     new_entities = []
     new_address = []
     
@@ -196,27 +187,16 @@ def process_nppes(nppes_data, cms_data, ):
 
     return new_entities, new_address
 
-def save_to_cms_file(new_entities, extract_addresses):
-    print("\n\n\nNew Entities Preview:")
-    print(pd.DataFrame(new_entities).head())
-
-    # Save new entities to a separate file
-    new_entities_file = "./datasets/output/new_entities.csv"
-    if new_entities:
-        pd.DataFrame(new_entities).to_csv(new_entities_file, index=False)
-        print(f"New entities saved to {new_entities_file}.")
-    else:
-        print("No new entities to save.")
-    
+def save_to_cms_file(new_entities, extract_addresses):    
     # Load the existing CMS entities file
     if os.path.exists(cms_file):
         cms_entities = pd.read_csv(cms_file,
             dtype={
-                "entity_id": str,  # Forzar NPI como cadena
-                "Type": str,  # Forzar Taxonomy Codes como cadenas
-                "Subtype": str,  # Repetir para todos los campos relevantes
+                "entity_id": str,  # Force NPI as string
+                "Type": str,  # Force Type field as Strings
+                "Subtype": str,  # Force Subtype field as Strings
             },
-            low_memory=False  # Desactiva la carga optimizada para evitar fragmentación de tipos
+            low_memory=False  # Disable optimized loading to avoid type fragmentation
         )
     else:
         cms_entities = pd.DataFrame(columns=required_columns.keys())  # Initialize with required columns
